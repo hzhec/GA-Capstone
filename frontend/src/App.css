@@ -1,0 +1,41 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#root {
+	width: 100vw;
+	height: 110vh;
+}
+
+@layer base {
+	h1 {
+		@apply text-2xl font-semibold;
+	}
+	h2 {
+		@apply text-xl font-semibold;
+	}
+
+	h3 {
+		@apply text-lg font-semibold;
+	}
+}
+
+@layer components {
+	.btn-primary {
+		@apply py-2 px-4 rounded-full capitalize font-semibold;
+	}
+
+	.btn-secondary {
+		@apply py-2 px-4 rounded-full bg-transparent border-2 border-primary capitalize font-semibold hover:bg-primary hover:border-white;
+	}
+
+	.btn-link {
+		@apply m-0 p-0 capitalize text-indigo-500 no-underline font-semibold;
+	}
+
+	.btn-tertiary {
+		@apply py-2 px-4 rounded-md bg-white text-gray-800 capitalize font-semibold hover:text-indigo-500;
+	}
+}
