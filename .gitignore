@@ -1,0 +1,5 @@
+
+.vscode/settings.json
+backend/__pycache__/app.cpython-310.pyc
+backend/yolov8m.onnx
+backend/yolov8m.pt
