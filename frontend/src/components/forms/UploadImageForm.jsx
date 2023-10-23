@@ -35,9 +35,7 @@ const UploadImageForm = () => {
 					if (response.ok) {
 						return response.json();
 					} else {
-						throw new Error(
-							`Failed to load image. HTTP status: ${response.status}`
-						);
+						throw new Error(`Failed to load image. HTTP status: ${response.status}`);
 					}
 				})
 				.then((data) => {
@@ -118,15 +116,13 @@ const UploadImageForm = () => {
 	return (
 		<div className="flex justify-center w-full">
 			<div className="flex flex-col justify-center w-full px-10">
-				<h1 className="text-3xl font-bold text-center my-4">
-					Upload Image
-				</h1>
+				<h1 className="text-3xl font-bold text-center my-4">Upload Image</h1>
 				<input
 					type="file"
 					id="imageInput"
 					accept="image/jpeg, image/png, image/jpg, image/webp"
 					onChange={handleImageChange}
-					className="file-input file-input-bordered max-w-xs mx-auto my-3"
+					className="file-input file-input-bordered file-input-warning w-full max-w-xs mx-auto my-3"
 				/>
 				{/* <button className="btn-primary" onClick={loadImage}>
 				Upload Image
