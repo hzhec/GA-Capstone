@@ -86,7 +86,7 @@ const UploadImageForm = () => {
 			});
 
 			const dataUrl = canvas.toDataURL();
-			console.log(uuid);
+			// console.log(uuid);
 			upload_image(dataUrl, uuid);
 			// return dataUrl;
 		};
@@ -105,7 +105,10 @@ const UploadImageForm = () => {
 			body: JSON.stringify({ file: file, uuid: uuid }),
 		})
 			.then((response) => {
-				console.log('response', response);
+				return response.json();
+			})
+			.then((data) => {
+				console.log(data.msg);
 			})
 			.catch((error) => {
 				console.error('Error uploading image:', error);
@@ -113,8 +116,8 @@ const UploadImageForm = () => {
 	};
 
 	return (
-		<div className="flex justify-center">
-			<div className="flex flex-col justify-center w-4/5">
+		<div className="flex justify-center w-full">
+			<div className="flex flex-col justify-center w-full px-10">
 				<h1 className="text-3xl font-bold text-center my-4">
 					Upload Image
 				</h1>
