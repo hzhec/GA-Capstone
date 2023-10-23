@@ -53,6 +53,22 @@ try:
 except (psycopg2.Error, Exception) as error:
     # Error connecting to the database
     print('Error connecting to the database:', error)
+    
+@app.route('/get_all_images', methods=['GET'])
+@cross_origin()
+def get_all_images():
+    fetched_data = []
+    cursor.execute("SELECT * FROM image_boxes")
+    rows = cursor.fetchall()
+    for row in rows:
+        fetched_data.append({
+            'id': row[0],
+            'created_at': row[1],
+            'updated_at': row[2],
+            'uuid': row[3],
+            'boxes': row[4]
+        })
+    return jsonify({'allimages': fetched_data})
 
 @app.route('/upload_image_supabase', methods=['POST'])
 @cross_origin()
@@ -63,8 +79,7 @@ def upload_image_sup():
     image = base64.b64decode(image_data.split(',')[1].replace(' ','+'))
     image_filename = f'{uuid}.jpeg'
     response = supabase.storage.from_("image-bucket").upload(image_filename, image, {"content-type": "image/jpeg"})
-    return jsonify({'message': 'Image uploaded to supabase storage'})
-
+    return jsonify({'msg': 'Image uploaded to supabase storage'})
     
 @app.route('/load_image', methods=['POST'])
 @cross_origin()
