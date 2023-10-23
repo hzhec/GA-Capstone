@@ -27,9 +27,9 @@ const PreviewImage = (props) => {
 							<span className="loading loading-spinner text-neutral"></span>
 							<div className="text-2xl mx-5">Loading</div>
 						</div>
-					) : (
+					) : props.uuid ? (
 						<img src={image_link} alt={`${props.uuid}`} className="py-4" />
-					)}
+					) : null}
 				</div>
 				<form method="dialog" className="modal-backdrop">
 					<button className="bg-slate-950/50">Close</button>
