@@ -31,6 +31,7 @@ const DeleteImageModal = (props) => {
 				console.error('Error deleting image:', error);
 			});
 		props.handleToggle();
+		props.refresh();
 	};
 
 	return (

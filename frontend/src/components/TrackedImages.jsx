@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import PreviewImage from './PreviewImage';
 import DeleteImageModal from './DeleteImageModal';
 import DeleteMultipleImages from './DeleteMultipleImages';
+import { IoMdRefresh } from 'react-icons/io';
 
 const TrackedImages = () => {
 	const [allImages, setAllImages] = useState();
@@ -13,6 +14,7 @@ const TrackedImages = () => {
 	const [previewUuid, setPreviewUuid] = useState();
 	const [deleteUuid, setDeleteUuid] = useState();
 	const [checkedImages, setCheckedImages] = useState([]);
+	const [refresh, setRefresh] = useState(false);
 
 	const idxOfLastImage = currentPage * imagesPerPage; // 1 * 10 = 10
 	const idxOfFirstImage = idxOfLastImage - imagesPerPage; // 10 - 10 = 0
@@ -30,6 +32,22 @@ const TrackedImages = () => {
 				console.log(err);
 			});
 	}, []);
+
+	// useEffect(() => {
+	// 	if (refresh) {
+	// 		fetch('http://127.0.0.1:5000/get_all_images')
+	// 			.then((response) => {
+	// 				return response.json();
+	// 			})
+	// 			.then((data) => {
+	// 				// console.log(data.all_images);
+	// 				setAllImages(data.all_images);
+	// 			})
+	// 			.catch((err) => {
+	// 				console.log(err);
+	// 			});
+	// 	}
+	// }, [refresh]);
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
@@ -69,18 +87,50 @@ const TrackedImages = () => {
 		openDeleteMultipleModal();
 	};
 
+	const refreshHandler = () => {
+		setRefresh(true);
+		const timer = setTimeout(() => {
+			fetch('http://127.0.0.1:5000/get_all_images')
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					// console.log(data.all_images);
+					setAllImages(data.all_images);
+				})
+				.catch((err) => {
+					console.log(err);
+				});
+			setRefresh(false);
+			clearTimeout(timer);
+		}, 1000);
+	};
+
 	return (
 		<div className="flex flex-col w-full">
 			<div className="flex justify-between mt-7 mb-2 mx-8">
-				<h1 className="text-xl ">Tracked Images {allImages && `(${allImages.length})`}</h1>
-				<label
-					htmlFor="delete-multiple-images"
-					className="btn btn-error btn-xs text-white"
-					disabled={checkedImages.length < 2}
-					onClick={() => deleteMultipleImagesHandler(checkedImages)}
-				>
-					Delete Selected
-				</label>
+				<div className="flex items-center justify-center">
+					<h1 className="text-xl mr-5">
+						Tracked Images {allImages && `(${allImages.length})`}
+					</h1>
+					{!refresh ? (
+						<div className="text-2xl" onClick={refreshHandler}>
+							<IoMdRefresh />
+						</div>
+					) : (
+						<span className="loading loading-spinner loading-sm"></span>
+					)}
+				</div>
+				<div className="flex justify-center items-center my-auto">
+					<label
+						htmlFor="delete-multiple-images"
+						className="btn btn-error btn-xs text-white"
+						disabled={checkedImages.length < 2}
+						onClick={() => deleteMultipleImagesHandler(checkedImages)}
+					>
+						Delete Selected
+					</label>
+				</div>
 			</div>
 			<PreviewImage
 				handleToggle={() => openPreviewModal()}
@@ -91,11 +141,13 @@ const TrackedImages = () => {
 				handleToggle={() => openDeleteModal()}
 				open={showDelete}
 				uuid={deleteUuid}
+				refresh={() => refreshHandler()}
 			/>
 			<DeleteMultipleImages
 				handleToggle={() => openDeleteMultipleModal()}
 				open={showDeleteMultiple}
 				uuidArray={checkedImages}
+				refresh={() => refreshHandler()}
 			/>
 			{allImages && (
 				<div className="p-5">
