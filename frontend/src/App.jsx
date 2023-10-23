@@ -1,13 +1,23 @@
-import "./App.css";
-import Navbar from "./components/Navbar";
-import UploadImageForm from "./components/forms/UploadImageForm";
+import { Route, Routes } from 'react-router-dom';
+import './App.css';
+import MainContent from './components/MainContent';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+// import TrackedImages from './components/TrackedImages';
+import UploadImageForm from './components/forms/UploadImageForm';
 
 function App() {
 	return (
-		<>
+		<div className="mx-auto my-3 w-11/12">
 			<Navbar />
-			<UploadImageForm />
-		</>
+			<div className="flex my-5 w-full">
+				<Sidebar />
+				<Routes>
+					<Route path="/" element={<MainContent />} />
+					<Route path="/upload-image" element={<UploadImageForm />} />
+				</Routes>
+			</div>
+		</div>
 	);
 }
 
