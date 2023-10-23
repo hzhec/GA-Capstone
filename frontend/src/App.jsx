@@ -3,7 +3,7 @@ import './App.css';
 import MainContent from './components/MainContent';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-// import TrackedImages from './components/TrackedImages';
+import TrackedImages from './components/TrackedImages';
 import UploadImageForm from './components/forms/UploadImageForm';
 
 function App() {
@@ -15,6 +15,7 @@ function App() {
 				<Routes>
 					<Route path="/" element={<MainContent />} />
 					<Route path="/upload-image" element={<UploadImageForm />} />
+					<Route path="/tracked-images" element={<TrackedImages />} />
 				</Routes>
 			</div>
 		</div>
