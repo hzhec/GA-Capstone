@@ -1,8 +1,28 @@
 const Navbar = () => {
 	return (
-		<div className="navbar bg-green-50">
-			<div className="navbar-start text-2xl font-bold mx-4">
-				Object Detection using YOLOv8 Model
+		<div className="navbar bg-base-100 w-full shadow-lg mx-auto">
+			<div className="flex-1">
+				<a className="btn btn-ghost normal-case text-xl">YOLOv8</a>
+			</div>
+			<div className="flex-none">
+				<ul className="menu menu-horizontal px-1">
+					<li>
+						<a>Link</a>
+					</li>
+					<li>
+						<details>
+							<summary>Parent</summary>
+							<ul className="p-2 bg-base-100">
+								<li>
+									<a>Link 1</a>
+								</li>
+								<li>
+									<a>Link 2</a>
+								</li>
+							</ul>
+						</details>
+					</li>
+				</ul>
 			</div>
 		</div>
 	);
