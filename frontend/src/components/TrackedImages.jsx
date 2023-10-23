@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import PreviewImage from './PreviewImage';
+import DeleteImageModal from './DeleteImageModal';
+import DeleteMultipleImages from './DeleteMultipleImages';
 
 const TrackedImages = () => {
 	const [allImages, setAllImages] = useState();
 	const [currentPage, setCurrentPage] = useState(1);
 	const imagesPerPage = 10;
 	const [showPreview, setShowPreview] = useState(false);
-	const [uuid, setUuid] = useState();
+	const [showDelete, setShowDelete] = useState(false);
+	const [showDeleteMultiple, setShowDeleteMultiple] = useState(false);
+	const [previewUuid, setPreviewUuid] = useState();
+	const [deleteUuid, setDeleteUuid] = useState();
 	const [checkedImages, setCheckedImages] = useState([]);
 
 	const idxOfLastImage = currentPage * imagesPerPage; // 1 * 10 = 10
@@ -18,8 +23,8 @@ const TrackedImages = () => {
 				return response.json();
 			})
 			.then((data) => {
-				// console.log(data.allimages);
-				setAllImages(data.allimages);
+				// console.log(data.all_images);
+				setAllImages(data.all_images);
 			})
 			.catch((err) => {
 				console.log(err);
@@ -28,28 +33,70 @@ const TrackedImages = () => {
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
-	const openPreview = () => {
+	const openPreviewModal = () => {
 		setShowPreview((prev) => !prev);
 	};
 
-	const previewImageHandler = (uuid) => {
-		setUuid(uuid);
-		openPreview();
+	const openDeleteModal = () => {
+		setShowDelete((prev) => !prev);
 	};
 
-	const checkboxChangeHandler = (event, imageUuid) => {
+	const openDeleteMultipleModal = () => {
+		setShowDeleteMultiple((prev) => !prev);
+	};
+
+	const previewImageHandler = (uuid) => {
+		setPreviewUuid(uuid);
+		openPreviewModal();
+	};
+
+	const checkboxChangeHandler = (event, uuid) => {
 		if (event.target.checked) {
-			setCheckedImages((prevCheckedImages) => [...prevCheckedImages, imageUuid]);
+			setCheckedImages((prevCheckedImages) => [...prevCheckedImages, uuid]);
 		} else {
-			setCheckedImages((prevCheckedImages) =>
-				prevCheckedImages.filter((uuid) => uuid !== imageUuid)
-			);
+			setCheckedImages((prevCheckedImages) => {
+				return prevCheckedImages.filter((list_uuid) => list_uuid !== uuid);
+			});
 		}
+	};
+
+	const deleteImageHandler = (uuid) => {
+		setDeleteUuid(uuid);
+		openDeleteModal();
+	};
+
+	const deleteMultipleImagesHandler = () => {
+		openDeleteMultipleModal();
 	};
 
 	return (
 		<div className="flex flex-col w-full">
-			<PreviewImage handleToggle={() => openPreview()} open={showPreview} uuid={uuid} />
+			<div className="flex justify-between mt-7 mb-2 mx-8">
+				<h1 className="text-xl ">Tracked Images {allImages && `(${allImages.length})`}</h1>
+				<label
+					htmlFor="delete-multiple-images"
+					className="btn btn-error btn-xs text-white"
+					disabled={checkedImages.length < 2}
+					onClick={() => deleteMultipleImagesHandler(checkedImages)}
+				>
+					Delete Selected
+				</label>
+			</div>
+			<PreviewImage
+				handleToggle={() => openPreviewModal()}
+				open={showPreview}
+				uuid={previewUuid}
+			/>
+			<DeleteImageModal
+				handleToggle={() => openDeleteModal()}
+				open={showDelete}
+				uuid={deleteUuid}
+			/>
+			<DeleteMultipleImages
+				handleToggle={() => openDeleteMultipleModal()}
+				open={showDeleteMultiple}
+				uuidArray={checkedImages}
+			/>
 			{allImages && (
 				<div className="p-5">
 					<div className="overflow-x-auto">
@@ -90,33 +137,36 @@ const TrackedImages = () => {
 										<td>
 											<label
 												htmlFor="preview-image"
-												className="btn btn-ghost btn-xs"
+												className="btn btn-xs"
 												onClick={() => previewImageHandler(image.uuid)}
 											>
 												Preview
 											</label>
 										</td>
-										<td className="flex items-center justify-center">
-											<button
-												type="button"
-												className="btn btn-square btn-outline btn-xs btn-error"
-												disabled={!checkedImages.includes(image.uuid)}
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													className="h-6 w-6"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
+										<td>
+											<div className="flex justify-center items-center">
+												<label
+													htmlFor="delete-image"
+													className="btn btn-square btn-outline btn-xs btn-error"
+													disabled={!checkedImages.includes(image.uuid)}
+													onClick={() => deleteImageHandler(image.uuid)}
 												>
-													<path
-														strokeLinecap="round"
-														strokeLinejoin="round"
-														strokeWidth="2"
-														d="M6 18L18 6M6 6l12 12"
-													/>
-												</svg>
-											</button>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														className="h-6 w-6"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth="2"
+															d="M6 18L18 6M6 6l12 12"
+														/>
+													</svg>
+												</label>
+											</div>
 										</td>
 									</tr>
 								))}

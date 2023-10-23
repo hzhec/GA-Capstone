@@ -68,7 +68,7 @@ def get_all_images():
             'uuid': row[3],
             'boxes': row[4]
         })
-    return jsonify({'allimages': fetched_data})
+    return jsonify({'all_images': fetched_data})
 
 @app.route('/upload_image_supabase', methods=['POST'])
 @cross_origin()
@@ -156,6 +156,28 @@ def intersection(box1,box2):
     x2 = min(box1_x2,box2_x2)
     y2 = min(box1_y2,box2_y2)
     return (x2-x1)*(y2-y1)
+
+@app.route('/delete_image', methods=['DELETE'])
+@cross_origin()
+def delete_image():
+    data = json.loads(request.get_data())
+    uuid = str(data['uuid'])
+    print(uuid)
+    cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
+    conn.commit()
+    supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
+    return jsonify({'msg': 'Image deleted from database'})
+
+@app.route('/delete_multiple_images', methods=['DELETE'])
+@cross_origin()
+def delete_multiple_images():
+    data = json.loads(request.get_data())
+    uuid = data['uuid']
+    cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
+    conn.commit()
+    for u in uuid: 
+        supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
+    return jsonify({'msg': 'Images deleted from database'})
 
 if __name__ == '__main__':
     app.run(debug=True)
