@@ -126,9 +126,6 @@ const UploadImageForm = () => {
 					onChange={handleImageChange}
 					className="file-input file-input-bordered  w-full max-w-xs mx-auto my-3"
 				/>
-				{/* <button className="btn-primary" onClick={loadImage}>
-				Upload Image
-			</button> */}
 				{isLoading && <canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />}
 			</div>
 		</div>
