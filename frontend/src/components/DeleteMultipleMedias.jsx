@@ -1,6 +1,14 @@
-const DeleteMultipleImages = (props) => {
+const DeleteMultipleMedias = (props) => {
+	let url = '';
+
+	if (props.type == 'images') {
+		url = 'http://127.0.0.1:65432/delete_multiple_images';
+	} else {
+		url = 'http://127.0.0.1:65432/delete_multiple_videos';
+	}
+
 	const deleteHandler = () => {
-		fetch('http://127.0.0.1:65432/delete_multiple_images', {
+		fetch(url, {
 			method: 'DELETE',
 			mode: 'cors',
 			headers: {
@@ -16,7 +24,7 @@ const DeleteMultipleImages = (props) => {
 				return response.json();
 			})
 			.catch((error) => {
-				console.error('Error deleting image:', error);
+				console.error('Error deleting medias:', error);
 			});
 		props.handleToggle();
 		props.refresh();
@@ -31,8 +39,8 @@ const DeleteMultipleImages = (props) => {
 				onClose={props.handleToggle}
 			>
 				<div className="modal-box max-w-xl">
-					<h3 className="font-bold text-lg">Delete Images</h3>
-					<p className="py-4">Are you sure you want to delete the selected images?</p>
+					<h3 className="font-bold text-lg">Delete Medias</h3>
+					<p className="py-4">Are you sure you want to delete the selected medias?</p>
 					<div className="btn-wrapper float-right">
 						<button className="btn btn-ghost mr-2" onClick={props.handleToggle}>
 							Cancel
@@ -50,4 +58,4 @@ const DeleteMultipleImages = (props) => {
 	);
 };
 
-export default DeleteMultipleImages;
+export default DeleteMultipleMedias;

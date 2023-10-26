@@ -54,8 +54,7 @@ const UploadVideoForm = () => {
 				<div className="flex justify-center w-full">
 					{isLoading == 'processing' && (
 						<div
-							type="button"
-							className="bg-neutral-focus w-[200px] rounded-lg text-white font-bold duration-[500ms,800ms]"
+							className="bg-neutral-focus w-[200px] rounded-lg text-white font-bold duration-[500ms,800ms] my-10"
 							disabled
 						>
 							<div className="flex items-center justify-center m-[10px]">

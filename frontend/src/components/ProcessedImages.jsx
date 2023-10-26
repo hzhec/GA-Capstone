@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import PreviewImage from './PreviewImage';
-import DeleteImageModal from './DeleteImageModal';
-import DeleteMultipleImages from './DeleteMultipleImages';
+import PreviewMedia from './PreviewMedia';
+import DeleteMediaModal from './DeleteMediaModal';
+import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
 
 const ProcessedImages = () => {
@@ -47,7 +47,7 @@ const ProcessedImages = () => {
 		setShowDeleteMultiple((prev) => !prev);
 	};
 
-	const previewImageHandler = (uuid) => {
+	const previewHandler = (uuid) => {
 		setPreviewUuid(uuid);
 		openPreviewModal();
 	};
@@ -67,7 +67,7 @@ const ProcessedImages = () => {
 		openDeleteModal();
 	};
 
-	const deleteMultipleImagesHandler = () => {
+	const deleteMultipleHandler = () => {
 		openDeleteMultipleModal();
 	};
 
@@ -110,28 +110,31 @@ const ProcessedImages = () => {
 						htmlFor="delete-multiple-images"
 						className="btn btn-error btn-xs text-white"
 						disabled={checkedImages.length < 2}
-						onClick={() => deleteMultipleImagesHandler(checkedImages)}
+						onClick={() => deleteMultipleHandler(checkedImages)}
 					>
 						Delete Selected
 					</label>
 				</div>
 			</div>
-			<PreviewImage
+			<PreviewMedia
 				handleToggle={() => openPreviewModal()}
 				open={showPreview}
 				uuid={previewUuid}
+				type="images"
 			/>
-			<DeleteImageModal
+			<DeleteMediaModal
 				handleToggle={() => openDeleteModal()}
 				open={showDelete}
 				uuid={deleteUuid}
 				refresh={() => refreshHandler()}
+				type="images"
 			/>
-			<DeleteMultipleImages
+			<DeleteMultipleMedias
 				handleToggle={() => openDeleteMultipleModal()}
 				open={showDeleteMultiple}
 				uuidArray={checkedImages}
 				refresh={() => refreshHandler()}
+				type="images"
 			/>
 			{allImages && (
 				<div className="p-5">
@@ -174,7 +177,7 @@ const ProcessedImages = () => {
 											<label
 												htmlFor="preview-image"
 												className="btn btn-xs"
-												onClick={() => previewImageHandler(image.uuid)}
+												onClick={() => previewHandler(image.uuid)}
 											>
 												Preview
 											</label>

@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
-const DeleteImageModal = (props) => {
+const DeleteMediaModal = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
-	const image_link = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
+	let mediaLink = '';
+	let url = '';
+
+	if (props.type == 'images') {
+		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
+		url = 'http://127.0.0.1:65432/delete_image';
+	} else {
+		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
+		url = 'http://127.0.0.1:65432/delete_video';
+	}
 
 	useEffect(() => {
 		setIsLoading(true);
@@ -12,7 +21,7 @@ const DeleteImageModal = (props) => {
 	}, [props.uuid]);
 
 	const deleteHandler = () => {
-		fetch('http://127.0.0.1:65432/delete_image', {
+		fetch(url, {
 			method: 'DELETE',
 			mode: 'cors',
 			headers: {
@@ -28,7 +37,7 @@ const DeleteImageModal = (props) => {
 				return response.json();
 			})
 			.catch((error) => {
-				console.error('Error deleting image:', error);
+				console.error('Error deleting media:', error);
 			});
 		props.handleToggle();
 		props.refresh();
@@ -37,16 +46,20 @@ const DeleteImageModal = (props) => {
 	return (
 		<>
 			<dialog id="delete-image" className="modal" open={props.open} onClose={props.handleToggle}>
-				<div className="modal-box max-w-xl">
-					<h3 className="font-bold text-lg">Delete Image</h3>
-					<p className="py-4">Are you sure you want to delete this image?</p>
+				<div className="modal-box max-w-3xl">
+					<h3 className="font-bold text-lg">Delete Media</h3>
+					<p className="py-4">Are you sure you want to delete this media?</p>
 					{isLoading ? (
 						<div className="flex justify-center py-10 items-center">
 							<span className="loading loading-spinner text-neutral"></span>
 							<div className="text-lg mx-5">Loading</div>
 						</div>
 					) : props.uuid ? (
-						<img src={image_link} alt={`${props.uuid}`} className="py-4" />
+						props.type == 'images' ? (
+							<img src={mediaLink} alt={`${props.uuid}`} className="py-4" />
+						) : (
+							<video src={mediaLink} controls width="840" className="py-4" />
+						)
 					) : null}
 					<div className="btn-wrapper float-right">
 						<button className="btn btn-ghost mr-2" onClick={props.handleToggle}>
@@ -65,4 +78,4 @@ const DeleteImageModal = (props) => {
 	);
 };
 
-export default DeleteImageModal;
+export default DeleteMediaModal;

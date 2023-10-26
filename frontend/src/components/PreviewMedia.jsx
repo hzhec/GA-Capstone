@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 
-const PreviewImage = (props) => {
+const PreviewMedia = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
-	const image_link = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
+	let mediaLink = '';
+
+	if (props.type == 'images') {
+		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
+	} else {
+		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
+	}
 
 	useEffect(() => {
 		setIsLoading(true);
 		const timer = setTimeout(() => {
 			setIsLoading(false);
-		}, 1200);
+		}, 1500);
 		return () => clearTimeout(timer);
 	}, [props.uuid]);
 
@@ -28,7 +34,11 @@ const PreviewImage = (props) => {
 							<div className="text-2xl mx-5">Loading</div>
 						</div>
 					) : props.uuid ? (
-						<img src={image_link} alt={`${props.uuid}`} className="py-4" />
+						props.type == 'images' ? (
+							<img src={mediaLink} alt={`${props.uuid}`} className="py-4" />
+						) : (
+							<video src={mediaLink} autoPlay controls width="840" className="py-4" />
+						)
 					) : null}
 				</div>
 				<form method="dialog" className="modal-backdrop">
@@ -39,4 +49,4 @@ const PreviewImage = (props) => {
 	);
 };
 
-export default PreviewImage;
+export default PreviewMedia;
