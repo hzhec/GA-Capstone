@@ -250,6 +250,42 @@ def upload_video_data(uuid, boxes, width, height):
     conn.commit()
     return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
 
+@app.route('/get_all_videos', methods=['GET'])
+@cross_origin()
+def get_all_videos():
+    fetched_data = []
+    cursor.execute("SELECT * FROM video_boxes")
+    rows = cursor.fetchall()
+    for row in rows:
+        fetched_data.append({
+            'id': row[0],
+            'created_at': row[1],
+            'updated_at': row[2],
+            'uuid': row[3],
+            'boxes': row[4]
+        })
+    return jsonify({'all_videos': fetched_data})
+
+@app.route('/delete_video', methods=['DELETE'])
+@cross_origin()
+def delete_video():
+    data = json.loads(request.get_data())
+    uuid = str(data['uuid'])
+    cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
+    conn.commit()
+    supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
+    return jsonify({'msg': 'Video deleted from database'})
+
+@app.route('/delete_multiple_videos', methods=['DELETE'])
+@cross_origin()
+def delete_multiple_videos():
+    data = json.loads(request.get_data())
+    uuid = data['uuid']
+    cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
+    conn.commit()
+    for u in uuid: 
+        supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
+    return jsonify({'msg': 'Videos deleted from database'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=65432, debug=True)
