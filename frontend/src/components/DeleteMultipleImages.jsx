@@ -1,6 +1,6 @@
 const DeleteMultipleImages = (props) => {
 	const deleteHandler = () => {
-		fetch('http://127.0.0.1:5000/delete_multiple_images', {
+		fetch('http://127.0.0.1:65432/delete_multiple_images', {
 			method: 'DELETE',
 			mode: 'cors',
 			headers: {

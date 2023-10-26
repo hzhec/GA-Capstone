@@ -4,7 +4,7 @@ import DeleteImageModal from './DeleteImageModal';
 import DeleteMultipleImages from './DeleteMultipleImages';
 import { IoMdRefresh } from 'react-icons/io';
 
-const TrackedImages = () => {
+const ProcessedImages = () => {
 	const [allImages, setAllImages] = useState();
 	const [currentPage, setCurrentPage] = useState(1);
 	const imagesPerPage = 10;
@@ -20,7 +20,7 @@ const TrackedImages = () => {
 	const idxOfFirstImage = idxOfLastImage - imagesPerPage; // 10 - 10 = 0
 
 	useEffect(() => {
-		fetch('http://127.0.0.1:5000/get_all_images')
+		fetch('http://127.0.0.1:65432/get_all_images')
 			.then((response) => {
 				return response.json();
 			})
@@ -32,22 +32,6 @@ const TrackedImages = () => {
 				console.log(err);
 			});
 	}, []);
-
-	// useEffect(() => {
-	// 	if (refresh) {
-	// 		fetch('http://127.0.0.1:5000/get_all_images')
-	// 			.then((response) => {
-	// 				return response.json();
-	// 			})
-	// 			.then((data) => {
-	// 				// console.log(data.all_images);
-	// 				setAllImages(data.all_images);
-	// 			})
-	// 			.catch((err) => {
-	// 				console.log(err);
-	// 			});
-	// 	}
-	// }, [refresh]);
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
@@ -90,7 +74,7 @@ const TrackedImages = () => {
 	const refreshHandler = () => {
 		setRefresh(true);
 		const timer = setTimeout(() => {
-			fetch('http://127.0.0.1:5000/get_all_images')
+			fetch('http://127.0.0.1:65432/get_all_images')
 				.then((response) => {
 					return response.json();
 				})
@@ -111,7 +95,7 @@ const TrackedImages = () => {
 			<div className="flex justify-between mt-7 mb-2 mx-8">
 				<div className="flex items-center justify-center">
 					<h1 className="text-xl mr-5">
-						Tracked Images {allImages && `(${allImages.length})`}
+						Processed Images {allImages && `(${allImages.length})`}
 					</h1>
 					{!refresh ? (
 						<div className="text-2xl" onClick={refreshHandler}>
@@ -250,4 +234,4 @@ const TrackedImages = () => {
 	);
 };
 
-export default TrackedImages;
+export default ProcessedImages;

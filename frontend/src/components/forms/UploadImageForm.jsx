@@ -5,6 +5,7 @@ const UploadImageForm = () => {
 	const [uuid, setUuid] = useState(null);
 	const [imageFile, setImageFile] = useState(null);
 	const [boxes, setBoxes] = useState(null);
+	const [isLoading, setIsLoading] = useState(false);
 
 	useEffect(() => {
 		if (uuid && boxes) {
@@ -20,7 +21,7 @@ const UploadImageForm = () => {
 		const data = new FormData();
 		if (newImageFile) {
 			data.append('image_file', newImageFile, 'image_file');
-			fetch('http://127.0.0.1:5000/load_image', {
+			fetch('http://127.0.0.1:65432/load_image', {
 				method: 'POST',
 				mode: 'cors',
 				headers: {
@@ -42,6 +43,7 @@ const UploadImageForm = () => {
 					const { boxes, uuid } = data;
 					setBoxes(boxes);
 					setUuid(uuid);
+					setIsLoading(true);
 				})
 				.catch((error) => {
 					console.error('Error:', error.message);
@@ -91,7 +93,7 @@ const UploadImageForm = () => {
 	};
 
 	const upload_image = (file, uuid) => {
-		fetch('http://127.0.0.1:5000/upload_image_supabase', {
+		fetch('http://127.0.0.1:65432/upload_image_supabase', {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
@@ -127,7 +129,7 @@ const UploadImageForm = () => {
 				{/* <button className="btn-primary" onClick={loadImage}>
 				Upload Image
 			</button> */}
-				<canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />
+				{isLoading && <canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />}
 			</div>
 		</div>
 	);

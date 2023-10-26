@@ -3,8 +3,10 @@ import './App.css';
 import MainContent from './components/MainContent';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import TrackedImages from './components/TrackedImages';
+import ProcessedImages from './components/ProcessedImages';
 import UploadImageForm from './components/forms/UploadImageForm';
+import UploadVideoForm from './components/forms/UploadVideoForm';
+import ProcessedVideos from './components/ProcessedVideos';
 
 function App() {
 	return (
@@ -15,7 +17,9 @@ function App() {
 				<Routes>
 					<Route path="/" element={<MainContent />} />
 					<Route path="/upload-image" element={<UploadImageForm />} />
-					<Route path="/tracked-images" element={<TrackedImages />} />
+					<Route path="/upload-video" element={<UploadVideoForm />} />
+					<Route path="/processed-images" element={<ProcessedImages />} />
+					<Route path="/processed-videos" element={<ProcessedVideos />} />
 				</Routes>
 			</div>
 		</div>

@@ -12,7 +12,7 @@ const DeleteImageModal = (props) => {
 	}, [props.uuid]);
 
 	const deleteHandler = () => {
-		fetch('http://127.0.0.1:5000/delete_image', {
+		fetch('http://127.0.0.1:65432/delete_image', {
 			method: 'DELETE',
 			mode: 'cors',
 			headers: {

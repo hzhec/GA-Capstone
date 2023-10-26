@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS, cross_origin
 import psycopg2
 from dotenv import load_dotenv
@@ -10,6 +10,9 @@ import onnxruntime as ort
 from uuid import uuid4
 import base64
 import json
+import cv2
+import io
+from werkzeug.utils import secure_filename
 
 # from storage3 import create_client
 from supabase import create_client
@@ -40,6 +43,7 @@ CORS(app)
 app.config[
     'DATABASE_URL'
 ] = f'{database_name}://{database_user}:{database_password}@{database_url}'
+app.config['UPLOAD_FOLDER'] = 'tmp'
 
 try:
     # Connect to the database
@@ -94,6 +98,7 @@ def load_image():
 
 def detect_objects_on_image(image):
     input, img_width, img_height = prepare_input(image)
+    # print(input)
     output = run_model(input)
     results = (process_output(output,img_width,img_height))
     return results
@@ -162,7 +167,6 @@ def intersection(box1,box2):
 def delete_image():
     data = json.loads(request.get_data())
     uuid = str(data['uuid'])
-    print(uuid)
     cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
     conn.commit()
     supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
@@ -179,5 +183,73 @@ def delete_multiple_images():
         supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
     return jsonify({'msg': 'Images deleted from database'})
 
+@app.route('/load_video', methods=['POST'])
+@cross_origin()
+def load_video():
+    video_file = request.files["video_file"]
+    uuid = str(uuid4())
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid}.mp4')
+    video_file.save(video_path)
+    
+    processed_video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
+    boxes, width, height = process_video(video_path, processed_video_path)
+    if boxes:
+        upload_video_sup(uuid, processed_video_path)
+        upload_video_data(uuid, boxes, width, height)
+        
+    os.remove(video_path)
+    os.remove(processed_video_path)
+    
+    return jsonify({'uuid': uuid})
+
+def process_video(video, output_path):
+    frames_info = []
+
+    cap = cv2.VideoCapture(video)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    fourcc = cv2.VideoWriter_fourcc(*'h264')
+    video_output = cv2.VideoWriter(output_path, fourcc, 20.0, (width, height))
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # processed_frame = process_frame(frame)
+        results = model(frame, device = 'mps')
+        result = results[0]
+        bboxes = np.array(result.boxes.xyxy.cpu(), dtype="int")
+        classes = np.array(result.boxes.cls.cpu(), dtype="int")
+        confidences = np.array(result.boxes.conf.cpu(), dtype="float")
+        
+        for cls, bbox, conf in zip(classes, bboxes, confidences): 
+            if conf > 0.5:
+                (x, y, x2, y2) = bbox
+                # print([x, y, x2, y2, result.names[cls], conf])
+                frames_info.append([x, y, x2, y2, result.names[cls], conf])
+                cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
+                cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
+            
+        video_output.write(frame)
+            
+    cap.release()
+    video_output.release()
+    cv2.destroyAllWindows()
+    
+    return frames_info, width, height
+
+def upload_video_sup(uuid, video_path):
+    with open(video_path, 'rb') as video_file:
+        supabase.storage.from_("video-bucket").upload(f'{uuid}.mp4', video_file, {'content-type':'video/mp4'})
+    return jsonify({'msg': 'Video uploaded to supabase storage'})
+
+def upload_video_data(uuid, boxes, width, height):
+    query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height") VALUES (%s, %s, %s, %s)'''
+    cursor.execute(query, (uuid, str(boxes), width, height))
+    conn.commit()
+    return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=65432, debug=True)
