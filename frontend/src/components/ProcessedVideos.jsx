@@ -86,9 +86,9 @@ const ProcessedVideos = () => {
 
 	return (
 		<div className="flex flex-col w-full">
-			<div className="flex justify-between mt-7 mb-2 mx-8">
+			<div className="flex justify-between mt-7 mb-4 mx-8">
 				<div className="flex items-center justify-center">
-					<h1 className="text-xl mr-5">
+					<h1 className="text-2xl mr-5">
 						Processed Videos {allVideos && `(${allVideos.length})`}
 					</h1>
 					{!refresh ? (

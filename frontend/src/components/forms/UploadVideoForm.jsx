@@ -26,7 +26,7 @@ const UploadVideoForm = () => {
 
 	return (
 		<div className="flex justify-center w-full">
-			<div className="flex flex-col justify-center w-full px-10">
+			<div className="flex flex-col w-full justify-self-start mt-5">
 				<h1 className="text-3xl font-bold text-center my-4">Upload Video</h1>
 				<input
 					type="file"
@@ -38,7 +38,7 @@ const UploadVideoForm = () => {
 				<div className="flex justify-center w-full">
 					{isProcessing && (
 						<div
-							className="bg-neutral-focus w-[200px] rounded-lg text-white font-bold duration-[500ms,800ms] my-10"
+							className="bg-neutral-focus w-[200px] rounded-lg text-white font-bold duration-[500ms,800ms] my-20"
 							disabled
 						>
 							<div className="flex items-center justify-center m-[10px]">
@@ -52,6 +52,7 @@ const UploadVideoForm = () => {
 							autoPlay
 							controls
 							width="840"
+							className="my-10"
 							src={`https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${uuid}.mp4`}
 						/>
 					)}
