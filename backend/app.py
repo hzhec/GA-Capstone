@@ -70,7 +70,7 @@ except (psycopg2.Error, Exception) as error:
 @socketio.on('get_all_images')
 def get_all_images():
     fetched_data = []
-    cursor.execute("SELECT * FROM image_boxes")
+    cursor.execute("SELECT * FROM image_boxes ORDER BY id ASC")
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
@@ -258,7 +258,7 @@ def upload_video_data(uuid, boxes, width, height):
 @socketio.on('get_all_videos')
 def get_all_videos():
     fetched_data = []
-    cursor.execute("SELECT * FROM video_boxes")
+    cursor.execute("SELECT * FROM video_boxes ORDER BY id ASC")
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
