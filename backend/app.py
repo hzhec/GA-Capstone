@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS, cross_origin
+from flask_socketio import SocketIO
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -11,8 +12,8 @@ from uuid import uuid4
 import base64
 import json
 import cv2
-import io
-from werkzeug.utils import secure_filename
+from io import BytesIO
+from threading import Event
 
 # from storage3 import create_client
 from supabase import create_client
@@ -34,32 +35,35 @@ supabase = create_client(url, key)
 
 model = YOLO("yolov8m.pt")
 model.export(format="onnx")
+MAX_BUFFER_SIZE = 100 * 1000 * 1000  # 50 MB
+
 with open("classes.txt", "r") as file:
     yolo_classes = [line.strip() for line in file]
     
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 
 app.config[
     'DATABASE_URL'
 ] = f'{database_name}://{database_user}:{database_password}@{database_url}'
 app.config['UPLOAD_FOLDER'] = 'tmp'
 
+CORS(app,resources={r"/*":{"origins":"*"}})
+socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=MAX_BUFFER_SIZE)
+rtsp = ''
+stop_event = Event()
+
 try:
     # Connect to the database
     conn = psycopg2.connect(app.config['DATABASE_URL'])
     cursor = conn.cursor()
-    # cursor.execute("SELECT * FROM image_boxes")
-    # rows = cursor.fetchall()
-    # print(rows)
     # Connection successful
     print('Connected to database successfully!')
 except (psycopg2.Error, Exception) as error:
     # Error connecting to the database
     print('Error connecting to the database:', error)
-    
-@app.route('/get_all_images', methods=['GET'])
-@cross_origin()
+
+@socketio.on('get_all_images')
 def get_all_images():
     fetched_data = []
     cursor.execute("SELECT * FROM image_boxes")
@@ -67,34 +71,43 @@ def get_all_images():
     for row in rows:
         fetched_data.append({
             'id': row[0],
-            'created_at': row[1],
-            'updated_at': row[2],
+            'created_at': str(row[1]),
+            'updated_at': str(row[2]),
             'uuid': row[3],
             'boxes': row[4]
         })
-    return jsonify({'all_images': fetched_data})
-
-@app.route('/upload_image_supabase', methods=['POST'])
-@cross_origin()
-def upload_image_sup():
-    data = json.loads(request.get_data())
-    image_data = data['file']
-    uuid = data['uuid']
-    image = base64.b64decode(image_data.split(',')[1].replace(' ','+'))
-    image_filename = f'{uuid}.jpeg'
-    response = supabase.storage.from_("image-bucket").upload(image_filename, image, {"content-type": "image/jpeg"})
-    return jsonify({'msg': 'Image uploaded to supabase storage'})
+    socketio.emit('all_images', {'all_images': fetched_data})
     
-@app.route('/load_image', methods=['POST'])
-@cross_origin()
-def load_image():
-    data = request.files["image_file"]
-    boxes = detect_objects_on_image(data.stream)
+@socketio.on('delete_image')
+def delete_image(data):
+    # data = json.loads(request.get_data())
+    uuid = data['uuid']
+    cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
+    conn.commit()
+    supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
+    # return jsonify({'msg': 'Image deleted from database'})
+    socketio.emit('delete_image', {'msg': 'Image deleted from database'})
+
+@socketio.on('delete_multiple_images')
+def delete_multiple_images(data):
+    uuid = data['uuid']
+    print(uuid)
+    cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
+    conn.commit()
+    for u in uuid: 
+        supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
+    socketio.emit('delete_multiple_images', {'msg': 'Images deleted from database'})
+    
+@socketio.on('upload_image_processing')
+def process_image(data):
+    data_stream = BytesIO(data)
+    boxes = detect_objects_on_image(data_stream)
     uuid = str(uuid4())
     query = '''INSERT INTO image_boxes ("uuid", "boxes") VALUES (%s, %s)'''
     cursor.execute(query, (uuid, str(boxes)))
     conn.commit()
-    return jsonify({'boxes': boxes, 'uuid': uuid})
+    # return jsonify({'boxes': boxes, 'uuid': uuid})
+    socketio.emit('image_process_completed', {'boxes': boxes, 'uuid': uuid})
 
 def detect_objects_on_image(image):
     input, img_width, img_height = prepare_input(image)
@@ -161,35 +174,23 @@ def intersection(box1,box2):
     x2 = min(box1_x2,box2_x2)
     y2 = min(box1_y2,box2_y2)
     return (x2-x1)*(y2-y1)
-
-@app.route('/delete_image', methods=['DELETE'])
-@cross_origin()
-def delete_image():
-    data = json.loads(request.get_data())
-    uuid = str(data['uuid'])
-    cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
-    conn.commit()
-    supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
-    return jsonify({'msg': 'Image deleted from database'})
-
-@app.route('/delete_multiple_images', methods=['DELETE'])
-@cross_origin()
-def delete_multiple_images():
-    data = json.loads(request.get_data())
+    
+@socketio.on('upload_to_supabase')
+def upload_image_sup(data):
+    image_data = data['processed_file']
     uuid = data['uuid']
-    cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
-    conn.commit()
-    for u in uuid: 
-        supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
-    return jsonify({'msg': 'Images deleted from database'})
+    image = base64.b64decode(image_data)
+    image_filename = f'{uuid}.jpeg'
+    supabase.storage.from_("image-bucket").upload(image_filename, image, {"content-type": "image/jpeg"})
+    image_data = ''
+    socketio.emit('upload_image_supabase', {'msg': 'Image uploaded to supabase storage'})
 
-@app.route('/load_video', methods=['POST'])
-@cross_origin()
-def load_video():
-    video_file = request.files["video_file"]
+@socketio.on('upload_video_processing')
+def load_video(data):
     uuid = str(uuid4())
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid}.mp4')
-    video_file.save(video_path)
+    with open(video_path, 'wb') as video_file:
+        video_file.write(data)
     
     processed_video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
     boxes, width, height = process_video(video_path, processed_video_path)
@@ -200,7 +201,7 @@ def load_video():
     os.remove(video_path)
     os.remove(processed_video_path)
     
-    return jsonify({'uuid': uuid})
+    socketio.emit('video_process_completed', {'uuid': uuid})
 
 def process_video(video, output_path):
     frames_info = []
@@ -250,8 +251,7 @@ def upload_video_data(uuid, boxes, width, height):
     conn.commit()
     return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
 
-@app.route('/get_all_videos', methods=['GET'])
-@cross_origin()
+@socketio.on('get_all_videos')
 def get_all_videos():
     fetched_data = []
     cursor.execute("SELECT * FROM video_boxes")
@@ -259,33 +259,82 @@ def get_all_videos():
     for row in rows:
         fetched_data.append({
             'id': row[0],
-            'created_at': row[1],
-            'updated_at': row[2],
+            'created_at': str(row[1]),
+            'updated_at': str(row[2]),
             'uuid': row[3],
             'boxes': row[4]
         })
-    return jsonify({'all_videos': fetched_data})
+    socketio.emit('all_videos', {'all_videos': fetched_data})
 
-@app.route('/delete_video', methods=['DELETE'])
-@cross_origin()
-def delete_video():
-    data = json.loads(request.get_data())
-    uuid = str(data['uuid'])
+@socketio.on('delete_video')
+def delete_video(data):
+    uuid = data['uuid']
     cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
     conn.commit()
     supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
-    return jsonify({'msg': 'Video deleted from database'})
+    socketio.emit('delete_video', {'msg': 'Video deleted from database'})
 
-@app.route('/delete_multiple_videos', methods=['DELETE'])
-@cross_origin()
-def delete_multiple_videos():
-    data = json.loads(request.get_data())
+@socketio.on('delete_multiple_videos')
+def delete_multiple_videos(data):
     uuid = data['uuid']
     cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
     conn.commit()
     for u in uuid: 
         supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
-    return jsonify({'msg': 'Videos deleted from database'})
+    socketio.emit('delete_multiple_videos', {'msg': 'Videos deleted from database'})
+
+@socketio.on('add_rtsp')
+def add_rtsp(data):
+    global rtsp
+    rtsp = data['rtsp']
+    
+@socketio.on('video_stream')
+def video_stream(stop_event):
+    global rtsp
+    if rtsp:
+        if rtsp == '0':
+            live_camera = cv2.VideoCapture(0)
+        else: 
+            live_camera = cv2.VideoCapture(rtsp)
+        
+        # live_camera.set(cv2.CAP_PROP_FPS, 30)
+        while not stop_event.is_set(): 
+            if live_camera.isOpened():
+                ret, frame = live_camera.read()
+                if not ret:
+                    break 
+                
+                results = model(frame, device = 'mps')
+                result = results[0]
+                bboxes = np.array(result.boxes.xyxy.cpu(), dtype="int")
+                classes = np.array(result.boxes.cls.cpu(), dtype="int")
+                confidences = np.array(result.boxes.conf.cpu(), dtype="float")
+                
+                for cls, bbox, conf in zip(classes, bboxes, confidences): 
+                    if conf > 0.5:
+                        (x, y, x2, y2) = bbox
+                        cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
+                        cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
+                
+                _, buffer = cv2.imencode('.jpeg', frame)
+                frame_as_base64 = base64.b64encode(buffer).decode('utf-8')
+                
+                socketio.emit('video_frame', {'image': frame_as_base64})
+                
+        live_camera.release()
+        cv2.destroyAllWindows()
+        rtsp = ''
+        
+@socketio.on('connect_live_cam')
+def handle_connect():
+    global stop_event
+    stop_event.clear()
+    socketio.start_background_task(video_stream, stop_event)
+    
+@socketio.on('disconnect_live_cam')
+def handle_disconnect():
+    global stop_event
+    stop_event.set()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=65432, debug=True)
+    socketio.run(app, host='0.0.0.0', port=65432, debug=True)
