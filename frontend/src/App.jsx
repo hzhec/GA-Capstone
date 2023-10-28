@@ -7,6 +7,7 @@ import ProcessedImages from './components/ProcessedImages';
 import UploadImageForm from './components/forms/UploadImageForm';
 import UploadVideoForm from './components/forms/UploadVideoForm';
 import ProcessedVideos from './components/ProcessedVideos';
+import LiveCamForm from './components/forms/LiveCamForm';
 
 function App() {
 	return (
@@ -18,6 +19,7 @@ function App() {
 					<Route path="/" element={<MainContent />} />
 					<Route path="/upload-image" element={<UploadImageForm />} />
 					<Route path="/upload-video" element={<UploadVideoForm />} />
+					<Route path="/live-camera" element={<LiveCamForm />} />
 					<Route path="/processed-images" element={<ProcessedImages />} />
 					<Route path="/processed-videos" element={<ProcessedVideos />} />
 				</Routes>
