@@ -3,6 +3,7 @@ import PreviewMedia from './PreviewMedia';
 import DeleteMediaModal from './DeleteMediaModal';
 import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
+import { io } from 'socket.io-client';
 
 const ProcessedVideos = () => {
 	const [allVideos, setAllVideos] = useState();
@@ -19,19 +20,22 @@ const ProcessedVideos = () => {
 	const idxOfLastVideo = currentPage * VideosPerPage; // 1 * 10 = 10
 	const idxOfFirstVideo = idxOfLastVideo - VideosPerPage; // 10 - 10 = 0
 
+	const socket = io('http://127.0.0.1:65432');
+
 	useEffect(() => {
-		fetch('http://127.0.0.1:65432/get_all_videos')
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				// console.log(data.all_videos);
-				setAllVideos(data.all_videos);
-			})
-			.catch((err) => {
-				console.log(err);
-			});
+		getAllVideos();
+		return () => {
+			socket.disconnect();
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	const getAllVideos = () => {
+		socket.emit('get_all_videos');
+		socket.on('all_videos', (data) => {
+			setAllVideos(data.all_videos);
+		});
+	};
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
@@ -74,17 +78,7 @@ const ProcessedVideos = () => {
 	const refreshHandler = () => {
 		setRefresh(true);
 		const timer = setTimeout(() => {
-			fetch('http://127.0.0.1:65432/get_all_videos')
-				.then((response) => {
-					return response.json();
-				})
-				.then((data) => {
-					// console.log(data.all_videos);
-					setAllVideos(data.all_videos);
-				})
-				.catch((err) => {
-					console.log(err);
-				});
+			getAllVideos();
 			setRefresh(false);
 			clearTimeout(timer);
 		}, 1000);

@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 const DeleteMediaModal = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
-	let mediaLink = '';
-	let url = '';
-
-	if (props.type == 'images') {
-		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
-		url = 'http://127.0.0.1:65432/delete_image';
-	} else {
-		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
-		url = 'http://127.0.0.1:65432/delete_video';
-	}
+	const socket = io('http://127.0.0.1:65432');
+	const mediaUrl =
+		props.type === 'images'
+			? `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`
+			: `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
 
 	useEffect(() => {
 		setIsLoading(true);
@@ -21,24 +17,8 @@ const DeleteMediaModal = (props) => {
 	}, [props.uuid]);
 
 	const deleteHandler = () => {
-		fetch(url, {
-			method: 'DELETE',
-			mode: 'cors',
-			headers: {
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				uuid: props.uuid,
-			}),
-		})
-			.then((response) => {
-				return response.json();
-			})
-			.catch((error) => {
-				console.error('Error deleting media:', error);
-			});
+		socket.emit(props.type === 'images' ? 'delete_image' : 'delete_video', { uuid: props.uuid });
+
 		props.handleToggle();
 		props.refresh();
 	};
@@ -56,9 +36,9 @@ const DeleteMediaModal = (props) => {
 						</div>
 					) : props.uuid ? (
 						props.type == 'images' ? (
-							<img src={mediaLink} alt={`${props.uuid}`} className="py-4" />
+							<img src={mediaUrl} alt={`${props.uuid}`} className="py-4" />
 						) : (
-							<video src={mediaLink} controls width="840" className="py-4" />
+							<video src={mediaUrl} controls width="840" className="py-4" />
 						)
 					) : null}
 					<div className="btn-wrapper float-right">

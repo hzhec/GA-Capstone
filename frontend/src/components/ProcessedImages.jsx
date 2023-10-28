@@ -3,6 +3,7 @@ import PreviewMedia from './PreviewMedia';
 import DeleteMediaModal from './DeleteMediaModal';
 import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
+import io from 'socket.io-client';
 
 const ProcessedImages = () => {
 	const [allImages, setAllImages] = useState();
@@ -19,19 +20,22 @@ const ProcessedImages = () => {
 	const idxOfLastImage = currentPage * imagesPerPage; // 1 * 10 = 10
 	const idxOfFirstImage = idxOfLastImage - imagesPerPage; // 10 - 10 = 0
 
+	const socket = io('http://127.0.0.1:65432');
+
 	useEffect(() => {
-		fetch('http://127.0.0.1:65432/get_all_images')
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				// console.log(data.all_images);
-				setAllImages(data.all_images);
-			})
-			.catch((err) => {
-				console.log(err);
-			});
+		getAllImages();
+		return () => {
+			socket.disconnect();
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	const getAllImages = () => {
+		socket.emit('get_all_images');
+		socket.on('all_images', (data) => {
+			setAllImages(data.all_images);
+		});
+	};
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
@@ -74,19 +78,10 @@ const ProcessedImages = () => {
 	const refreshHandler = () => {
 		setRefresh(true);
 		const timer = setTimeout(() => {
-			fetch('http://127.0.0.1:65432/get_all_images')
-				.then((response) => {
-					return response.json();
-				})
-				.then((data) => {
-					// console.log(data.all_images);
-					setAllImages(data.all_images);
-				})
-				.catch((err) => {
-					console.log(err);
-				});
+			getAllImages();
 			setRefresh(false);
 			clearTimeout(timer);
+			socket.disconnect();
 		}, 1000);
 	};
 

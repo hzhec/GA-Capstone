@@ -1,31 +1,17 @@
+import { io } from 'socket.io-client';
+
 const DeleteMultipleMedias = (props) => {
-	let url = '';
+	const socket = io('http://127.0.0.1:65432');
+	let endpoint = '';
 
 	if (props.type == 'images') {
-		url = 'http://127.0.0.1:65432/delete_multiple_images';
+		endpoint = 'delete_multiple_images';
 	} else {
-		url = 'http://127.0.0.1:65432/delete_multiple_videos';
+		endpoint = 'delete_multiple_videos';
 	}
 
 	const deleteHandler = () => {
-		fetch(url, {
-			method: 'DELETE',
-			mode: 'cors',
-			headers: {
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				uuid: props.uuidArray,
-			}),
-		})
-			.then((response) => {
-				return response.json();
-			})
-			.catch((error) => {
-				console.error('Error deleting medias:', error);
-			});
+		socket.emit(endpoint, { uuid: props.uuidArray });
 		props.handleToggle();
 		props.refresh();
 	};

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { io } from 'socket.io-client';
 
 const UploadImageForm = () => {
 	const canvasRef = useRef(null);
@@ -7,52 +8,33 @@ const UploadImageForm = () => {
 	const [boxes, setBoxes] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
 
+	const socket = io('http://127.0.0.1:65432');
+
 	useEffect(() => {
-		if (uuid && boxes) {
-			tracked_image(imageFile, boxes);
+		if (boxes) {
+			processImage(imageFile, boxes);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [uuid, boxes, imageFile]);
+	}, [boxes]);
 
 	const handleImageChange = (event) => {
 		const newImageFile = event.target.files[0];
 		setImageFile(newImageFile);
 
-		const data = new FormData();
 		if (newImageFile) {
-			data.append('image_file', newImageFile, 'image_file');
-			fetch('http://127.0.0.1:65432/load_image', {
-				method: 'POST',
-				mode: 'cors',
-				headers: {
-					// 'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Request-Headers': '*',
-					'Access-Control-Request-Method': '*',
-				},
-				body: data,
-			})
-				.then((response) => {
-					if (response.ok) {
-						return response.json();
-					} else {
-						throw new Error(`Failed to load image. HTTP status: ${response.status}`);
-					}
-				})
-				.then((data) => {
-					const { boxes, uuid } = data;
-					setBoxes(boxes);
-					setUuid(uuid);
-					setIsLoading(true);
-				})
-				.catch((error) => {
-					console.error('Error:', error.message);
-				});
+			socket.emit('upload_image_processing', newImageFile);
+			socket.on('image_process_completed', (data) => {
+				const { boxes, uuid } = data;
+				setBoxes(boxes);
+				setUuid(uuid);
+				setIsLoading(true);
+			});
 		}
+
 		// console.log("event", event.target.files[0]);
 	};
 
-	const tracked_image = (file, boxes) => {
+	const processImage = (file, boxes) => {
 		const canvas = canvasRef.current;
 		const ctx = canvas.getContext('2d');
 		const img = new Image();
@@ -86,33 +68,15 @@ const UploadImageForm = () => {
 			});
 
 			const dataUrl = canvas.toDataURL();
-			// console.log(uuid);
-			upload_image(dataUrl, uuid);
-			// return dataUrl;
+			if (dataUrl) {
+				upload_image(dataUrl, uuid);
+			}
 		};
 	};
 
 	const upload_image = (file, uuid) => {
-		fetch('http://127.0.0.1:65432/upload_image_supabase', {
-			method: 'POST',
-			mode: 'cors',
-			headers: {
-				// 'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({ file: file, uuid: uuid }),
-		})
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				console.log(data.msg);
-			})
-			.catch((error) => {
-				console.error('Error uploading image:', error);
-			});
+		const image_data = file.split(',')[1].replace(' ', '+');
+		socket.emit('upload_to_supabase', { processed_file: image_data, uuid: uuid });
 	};
 
 	return (

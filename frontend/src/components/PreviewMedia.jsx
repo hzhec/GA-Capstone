@@ -2,13 +2,10 @@ import { useEffect, useState } from 'react';
 
 const PreviewMedia = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
-	let mediaLink = '';
-
-	if (props.type == 'images') {
-		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`;
-	} else {
-		mediaLink = `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
-	}
+	const mediaUrl =
+		props.type === 'images'
+			? `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`
+			: `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
 
 	useEffect(() => {
 		setIsLoading(true);
@@ -35,9 +32,9 @@ const PreviewMedia = (props) => {
 						</div>
 					) : props.uuid ? (
 						props.type == 'images' ? (
-							<img src={mediaLink} alt={`${props.uuid}`} className="py-4" />
+							<img src={mediaUrl} alt={`${props.uuid}`} className="py-4" />
 						) : (
-							<video src={mediaLink} autoPlay controls width="840" className="py-4" />
+							<video src={mediaUrl} autoPlay controls width="840" className="py-4" />
 						)
 					) : null}
 				</div>

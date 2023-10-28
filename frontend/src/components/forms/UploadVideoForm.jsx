@@ -1,44 +1,28 @@
 import { useState } from 'react';
+import { io } from 'socket.io-client';
 
 const UploadVideoForm = () => {
 	const [uuid, setUuid] = useState(null);
 	const [isLoading, setIsLoading] = useState('');
 
+	const socket = io('http://127.0.0.1:65432');
+
 	const handleVideoChange = (event) => {
 		const newVideoFile = event.target.files[0];
 		setIsLoading('processing');
-		const data = new FormData();
 
 		if (newVideoFile) {
-			data.append('video_file', newVideoFile, 'video_file');
-			fetch('http://127.0.0.1:65432/load_video', {
-				method: 'POST',
-				mode: 'cors',
-				headers: {
-					// 'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Request-Headers': '*',
-					'Access-Control-Request-Method': '*',
-				},
-				body: data,
-			})
-				.then((response) => {
-					if (response.ok) {
-						return response.json();
-					} else {
-						throw new Error(`Failed to load video. HTTP status: ${response.status}`);
-					}
-				})
-				.then((data) => {
-					const { uuid } = data;
-					setUuid(uuid);
-					setIsLoading('completed');
-				})
-				.catch((error) => {
-					console.error('Error:', error.message);
-				});
+			socket.emit('upload_video_processing', newVideoFile);
+			socket.on('video_process_completed', (data) => {
+				const { uuid } = data;
+				setUuid(uuid);
+				setIsLoading('completed');
+			});
 		}
 	};
+
+	const isProcessing = isLoading === 'processing';
+	const isCompleted = isLoading === 'completed';
 
 	return (
 		<div className="flex justify-center w-full">
@@ -52,7 +36,7 @@ const UploadVideoForm = () => {
 					className="file-input file-input-bordered  w-full max-w-xs mx-auto my-3"
 				/>
 				<div className="flex justify-center w-full">
-					{isLoading == 'processing' && (
+					{isProcessing && (
 						<div
 							className="bg-neutral-focus w-[200px] rounded-lg text-white font-bold duration-[500ms,800ms] my-10"
 							disabled
@@ -63,7 +47,7 @@ const UploadVideoForm = () => {
 							</div>
 						</div>
 					)}
-					{isLoading == 'completed' && (
+					{isCompleted && (
 						<video
 							autoPlay
 							controls
