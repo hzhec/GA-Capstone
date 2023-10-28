@@ -1,30 +1,38 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
-import MainContent from './components/MainContent';
+import MainPage from './components/MainPage';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
 import ProcessedImages from './components/ProcessedImages';
 import UploadImageForm from './components/forms/UploadImageForm';
 import UploadVideoForm from './components/forms/UploadVideoForm';
 import ProcessedVideos from './components/ProcessedVideos';
 import LiveCamForm from './components/forms/LiveCamForm';
+import RegisterForm from './components/forms/RegisterForm';
+import LoginForm from './components/forms/LoginForm';
+import YoloProvider from './components/context/yolo-context';
+import Layout from './components/Layout';
 
 function App() {
 	return (
-		<div className="mx-auto my-3 w-11/12">
-			<Navbar />
-			<div className="flex my-5 w-full">
-				<Sidebar />
+		<>
+			<YoloProvider>
+				<Navbar />
 				<Routes>
-					<Route path="/" element={<MainContent />} />
-					<Route path="/upload-image" element={<UploadImageForm />} />
-					<Route path="/upload-video" element={<UploadVideoForm />} />
-					<Route path="/live-camera" element={<LiveCamForm />} />
-					<Route path="/processed-images" element={<ProcessedImages />} />
-					<Route path="/processed-videos" element={<ProcessedVideos />} />
+					<Route path="/" element={<Layout />}>
+						<Route path="/" element={<MainPage />} />
+
+						<Route path="/login" element={<LoginForm />} />
+						<Route path="/register" element={<RegisterForm />} />
+
+						<Route path="/upload-image" element={<UploadImageForm />} />
+						<Route path="/upload-video" element={<UploadVideoForm />} />
+						<Route path="/live-camera" element={<LiveCamForm />} />
+						<Route path="/processed-images" element={<ProcessedImages />} />
+						<Route path="/processed-videos" element={<ProcessedVideos />} />
+					</Route>
 				</Routes>
-			</div>
-		</div>
+			</YoloProvider>
+		</>
 	);
 }
 

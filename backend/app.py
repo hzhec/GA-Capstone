@@ -14,6 +14,8 @@ import json
 import cv2
 from io import BytesIO
 from threading import Event
+import bcrypt
+import jwt
 
 # from storage3 import create_client
 from supabase import create_client
@@ -26,6 +28,8 @@ database_password = os.environ.get('DB_PASSWORD')
 database_user = os.environ.get('DB_USER')
 database_port = os.environ.get('DB_PORT')
 
+jwt_secret_key = os.environ.get('JWT_SECRET_KEY')
+
 url = os.environ.get('SUPABASE_PROJECT_URL')
 key = os.environ.get('SUPABASE_API_KEY')
 # print(url, key)
@@ -35,7 +39,7 @@ supabase = create_client(url, key)
 
 model = YOLO("yolov8m.pt")
 model.export(format="onnx")
-MAX_BUFFER_SIZE = 100 * 1000 * 1000  # 50 MB
+MAX_BUFFER_SIZE = 200 * 1000 * 1000  # 100 MB
 
 with open("classes.txt", "r") as file:
     yolo_classes = [line.strip() for line in file]
@@ -335,6 +339,54 @@ def handle_connect():
 def handle_disconnect():
     global stop_event
     stop_event.set()
+    
+@socketio.on('register_account')
+def register_account(data):
+    username = data['username']
+    cursor.execute("SELECT id FROM accounts WHERE username = %s", (username,))
+    row = cursor.fetchone()
+    if row is not None:
+        socketio.emit('registration_status', {'msg': 'Account already exists'})
+        return
+  
+    encrypted_pw = encrypt_password({'password': data['password']})
+    cursor.execute("INSERT INTO accounts (username, password) VALUES (%s, %s)", (username, str(encrypted_pw)))
+    conn.commit()
+    socketio.emit('registration_status', {'msg': 'Account registered successfully'})
+    
+def encrypt_password(data):
+    password = data['password']
+    salt = bcrypt.gensalt()
+    encrypted = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return encrypted
+
+@socketio.on('login_account')
+def login_account(data):
+    username = data['username']
+    cursor.execute("SELECT username, password FROM accounts where username = %s", (username,))
+    account = cursor.fetchone()
+    if account is None: 
+        socketio.emit('login_status', {'msg': 'Account not found'})
+        return
+    decrypted = decrypt_password({'db_pw': account[1].split("'")[1], 'password': data['password']})
+    if not decrypted: 
+        socketio.emit('login_status', {'msg': 'Incorrect password'})
+        return
+    token = create_secret_token(account[0])
+    print(token)
+    socketio.emit('login_status', {'msg': 'Login successful', 'authToken': token, 'username': account[0], 'status': 'success'})
+
+def decrypt_password(data):
+    db_pw = data['db_pw'].encode('utf-8')
+    password = data['password'].encode('utf-8')
+    return bcrypt.checkpw(password, db_pw)
+
+def create_secret_token(data):
+    return jwt.encode({"username": data}, jwt_secret_key, algorithm="HS256")
+
+def authentication_required(f):
+    def decorated(*args, **kwargs):
+        pass
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=65432, debug=True)
