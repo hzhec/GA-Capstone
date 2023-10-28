@@ -24,7 +24,7 @@ const UploadVideoForm = () => {
 		setIsLoading('processing');
 
 		if (newVideoFile) {
-			socket.emit('upload_video_processing', newVideoFile);
+			socket.emit('upload_video_processing', newVideoFile, { userId: authToken.id });
 			socket.on('video_process_completed', (data) => {
 				const { uuid } = data;
 				setUuid(uuid);

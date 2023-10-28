@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react';
 
 const YoloContext = createContext({
 	authToken: {
+		id: '',
 		username: '',
 		token: '',
 	},
@@ -16,6 +17,7 @@ export const useYoloContext = () => {
 
 const YoloProvider = (props) => {
 	const [authToken, setAuthToken] = useState({
+		id: Cookies.get('id'),
 		username: Cookies.get('username'),
 		token: Cookies.get('token'),
 	});

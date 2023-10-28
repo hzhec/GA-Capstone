@@ -42,7 +42,8 @@ const ProcessedVideos = () => {
 	}, []);
 
 	const getAllVideos = () => {
-		socket.emit('get_all_videos');
+		console.log(authToken.id);
+		socket.emit('get_all_videos', { user_id: authToken.id });
 		socket.on('all_videos', (data) => {
 			setAllVideos(data.all_videos);
 		});

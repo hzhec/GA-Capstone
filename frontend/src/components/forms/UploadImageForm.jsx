@@ -34,7 +34,10 @@ const UploadImageForm = () => {
 		setImageFile(newImageFile);
 
 		if (newImageFile) {
-			socket.emit('upload_image_processing', newImageFile);
+			socket.emit('upload_image_processing', {
+				imageFile: newImageFile,
+				userId: authToken.id,
+			});
 			socket.on('image_process_completed', (data) => {
 				const { boxes, uuid } = data;
 				setBoxes(boxes);

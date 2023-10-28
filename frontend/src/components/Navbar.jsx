@@ -8,9 +8,10 @@ const Navbar = () => {
 	const navigate = useNavigate();
 
 	const logoutHandler = () => {
+		Cookies.remove('id');
 		Cookies.remove('token');
 		Cookies.remove('username');
-		setAuthToken({ username: '', token: '' });
+		setAuthToken({ id: '', username: '', token: '' });
 		setTimeout(() => {
 			navigate('/login');
 		}, 400);

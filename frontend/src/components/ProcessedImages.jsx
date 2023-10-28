@@ -43,7 +43,7 @@ const ProcessedImages = () => {
 	}, []);
 
 	const getAllImages = () => {
-		socket.emit('get_all_images');
+		socket.emit('get_all_images', { userId: authToken.id });
 		socket.on('all_images', (data) => {
 			setAllImages(data.all_images);
 		});

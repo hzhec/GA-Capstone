@@ -23,7 +23,9 @@ const LoginForm = () => {
 				if (data.status === 'success') {
 					const token = Cookies.set('token', data.authToken);
 					const username = Cookies.set('username', data.username);
+					const id = Cookies.set('id', data.userId);
 					setAuthToken({
+						id: id,
 						username: username,
 						token: token,
 					});
@@ -33,6 +35,27 @@ const LoginForm = () => {
 				}
 			});
 		}
+	};
+
+	const loginTestAccountHandler = () => {
+		socket.emit('login_account', { username: 'test', password: 'password' });
+		socket.on('login_status', (data) => {
+			// console.log(data.msg);
+			// console.log(data);
+			if (data.status === 'success') {
+				const token = Cookies.set('token', data.authToken);
+				const username = Cookies.set('username', data.username);
+				const id = Cookies.set('id', data.userId);
+				setAuthToken({
+					id: id,
+					username: username,
+					token: token,
+				});
+				setTimeout(() => {
+					navigate('/');
+				}, 400);
+			}
+		});
 	};
 
 	return (
@@ -74,13 +97,23 @@ const LoginForm = () => {
 								>
 									Login
 								</button>
-								<p className="text-sm font-light text-gray-500">
-									Don’t have an account yet?{' '}
-									<Link to="/register" className="font-medium text-info hover:underline">
-										Register here
-									</Link>
-								</p>
 							</form>
+							<p className="text-sm font-light text-gray-500">
+								Don’t have an account yet?{' '}
+								<Link to="/register" className="font-medium text-info hover:underline">
+									Register here
+								</Link>
+							</p>
+							<p className="text-sm font-light text-gray-500">
+								Click{' '}
+								<Link
+									className="font-medium text-info hover:underline"
+									onClick={loginTestAccountHandler}
+								>
+									here
+								</Link>{' '}
+								for test account.
+							</p>
 						</div>
 					</div>
 				</div>

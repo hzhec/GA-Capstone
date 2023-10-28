@@ -68,9 +68,11 @@ except (psycopg2.Error, Exception) as error:
     print('Error connecting to the database:', error)
 
 @socketio.on('get_all_images')
-def get_all_images():
+def get_all_images(data):
     fetched_data = []
-    cursor.execute("SELECT * FROM image_boxes ORDER BY id ASC")
+    user_id = data['userId']
+    query = '''SELECT * FROM image_boxes WHERE "user_id"=%s ORDER BY id ASC'''
+    cursor.execute(query, user_id)
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
@@ -104,11 +106,13 @@ def delete_multiple_images(data):
     
 @socketio.on('upload_image_processing')
 def process_image(data):
-    data_stream = BytesIO(data)
+    user_id = data['userId']
+    image_file = data['imageFile']
+    data_stream = BytesIO(image_file)
     boxes = detect_objects_on_image(data_stream)
     uuid = str(uuid4())
-    query = '''INSERT INTO image_boxes ("uuid", "boxes") VALUES (%s, %s)'''
-    cursor.execute(query, (uuid, str(boxes)))
+    query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id") VALUES (%s, %s, %s)'''
+    cursor.execute(query, (uuid, str(boxes), user_id))
     conn.commit()
     # return jsonify({'boxes': boxes, 'uuid': uuid})
     socketio.emit('image_process_completed', {'boxes': boxes, 'uuid': uuid})
@@ -190,7 +194,8 @@ def upload_image_sup(data):
     socketio.emit('upload_image_supabase', {'msg': 'Image uploaded to supabase storage'})
 
 @socketio.on('upload_video_processing')
-def load_video(data):
+def load_video(data, id):
+    user_id = id['userId']
     uuid = str(uuid4())
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid}.mp4')
     with open(video_path, 'wb') as video_file:
@@ -200,7 +205,7 @@ def load_video(data):
     boxes, width, height = process_video(video_path, processed_video_path)
     if boxes:
         upload_video_sup(uuid, processed_video_path)
-        upload_video_data(uuid, boxes, width, height)
+        upload_video_data(uuid, boxes, width, height, user_id)
         
     os.remove(video_path)
     os.remove(processed_video_path)
@@ -249,16 +254,19 @@ def upload_video_sup(uuid, video_path):
         supabase.storage.from_("video-bucket").upload(f'{uuid}.mp4', video_file, {'content-type':'video/mp4'})
     return jsonify({'msg': 'Video uploaded to supabase storage'})
 
-def upload_video_data(uuid, boxes, width, height):
-    query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height") VALUES (%s, %s, %s, %s)'''
-    cursor.execute(query, (uuid, str(boxes), width, height))
+def upload_video_data(uuid, boxes, width, height, user_id):
+    query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height", "user_id") VALUES (%s, %s, %s, %s, %s)'''
+    cursor.execute(query, (uuid, str(boxes), width, height, user_id))
     conn.commit()
     return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
 
 @socketio.on('get_all_videos')
-def get_all_videos():
+def get_all_videos(data):
     fetched_data = []
-    cursor.execute("SELECT * FROM video_boxes ORDER BY id ASC")
+    user_id = data['user_id']
+    print(user_id)
+    query = '''SELECT * FROM video_boxes WHERE "user_id"=%s ORDER BY id ASC'''
+    cursor.execute(query, user_id)
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
@@ -363,18 +371,20 @@ def encrypt_password(data):
 @socketio.on('login_account')
 def login_account(data):
     username = data['username']
-    cursor.execute("SELECT username, password FROM accounts where username = %s", (username,))
+    query = '''SELECT id, username, password FROM accounts WHERE username=%s'''
+    cursor.execute(query, (username,))
     account = cursor.fetchone()
+    print(account)
     if account is None: 
         socketio.emit('login_status', {'msg': 'Account not found'})
         return
-    decrypted = decrypt_password({'db_pw': account[1].split("'")[1], 'password': data['password']})
+    decrypted = decrypt_password({'db_pw': account[2].split("'")[1], 'password': data['password']})
     if not decrypted: 
         socketio.emit('login_status', {'msg': 'Incorrect password'})
         return
     token = create_secret_token(account[0])
-    print(token)
-    socketio.emit('login_status', {'msg': 'Login successful', 'authToken': token, 'username': account[0], 'status': 'success'})
+    # print(token)
+    socketio.emit('login_status', {'msg': 'Login successful', 'authToken': token, 'username': account[1], 'userId': account[0], 'status': 'success'})
 
 def decrypt_password(data):
     db_pw = data['db_pw'].encode('utf-8')
@@ -383,10 +393,6 @@ def decrypt_password(data):
 
 def create_secret_token(data):
     return jwt.encode({"username": data}, jwt_secret_key, algorithm="HS256")
-
-def authentication_required(f):
-    def decorated(*args, **kwargs):
-        pass
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=65432, debug=True)
