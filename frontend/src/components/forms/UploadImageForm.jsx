@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { useYoloContext } from '../context/yolo-context';
+import { useNavigate } from 'react-router-dom';
 
 const UploadImageForm = () => {
 	const canvasRef = useRef(null);
@@ -9,6 +11,16 @@ const UploadImageForm = () => {
 	const [isLoading, setIsLoading] = useState(false);
 
 	const socket = io('http://127.0.0.1:65432');
+
+	const navigate = useNavigate();
+	const { authToken } = useYoloContext();
+
+	useEffect(() => {
+		if (!authToken.token) {
+			navigate('/login');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useEffect(() => {
 		if (boxes) {

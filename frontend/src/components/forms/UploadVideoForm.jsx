@@ -1,11 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { useYoloContext } from '../context/yolo-context';
 
 const UploadVideoForm = () => {
 	const [uuid, setUuid] = useState(null);
 	const [isLoading, setIsLoading] = useState('');
 
 	const socket = io('http://127.0.0.1:65432');
+
+	const navigate = useNavigate();
+	const { authToken } = useYoloContext();
+
+	useEffect(() => {
+		if (!authToken.token) {
+			navigate('/login');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const handleVideoChange = (event) => {
 		const newVideoFile = event.target.files[0];

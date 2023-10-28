@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
+import { useYoloContext } from '../context/yolo-context';
 
 const LiveCamForm = () => {
 	const [videoUrl, setVideoUrl] = useState('');
@@ -8,6 +10,15 @@ const LiveCamForm = () => {
 	const [connectStatus, setConnectStatus] = useState(false);
 
 	const socket = io('http://127.0.0.1:65432');
+	const navigate = useNavigate();
+	const { authToken } = useYoloContext();
+
+	useEffect(() => {
+		if (!authToken.token) {
+			navigate('/login');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useEffect(() => {
 		if (isConnected) {
