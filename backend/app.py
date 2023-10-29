@@ -71,7 +71,7 @@ except (psycopg2.Error, Exception) as error:
 def get_all_images(data):
     fetched_data = []
     user_id = data['userId']
-    query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id ASC'''
+    query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
     cursor.execute(query)
     rows = cursor.fetchall()
     for row in rows:
@@ -108,20 +108,22 @@ def delete_multiple_images(data):
 def process_image(data):
     user_id = data['userId']
     image_file = data['imageFile']
+    class_name = data['className']
     data_stream = BytesIO(image_file)
-    boxes = detect_objects_on_image(data_stream)
+    boxes = detect_objects_on_image(data_stream, class_name)
     uuid = str(uuid4())
-    query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id") VALUES (%s, %s, %s)'''
-    cursor.execute(query, (uuid, str(boxes), user_id))
-    conn.commit()
+    if len(boxes) != 0:
+        query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id") VALUES (%s, %s, %s)'''
+        cursor.execute(query, (uuid, str(boxes), user_id))
+        conn.commit()
     # return jsonify({'boxes': boxes, 'uuid': uuid})
     socketio.emit('image_process_completed', {'boxes': boxes, 'uuid': uuid})
 
-def detect_objects_on_image(image):
+def detect_objects_on_image(image, class_name):
     input, img_width, img_height = prepare_input(image)
     # print(input)
     output = run_model(input)
-    results = (process_output(output,img_width,img_height))
+    results = process_output(output,img_width,img_height, class_name)
     return results
 
 def prepare_input(image):
@@ -139,7 +141,7 @@ def run_model(input):
     outputs = model.run(["output0"], {"images":input})
     return outputs[0]
 
-def process_output(output,img_width,img_height):
+def process_output(output,img_width,img_height,class_name):
     output = output[0].astype(float)
     output = output.transpose()
 
@@ -150,6 +152,8 @@ def process_output(output,img_width,img_height):
             continue
         class_id = row[4:].argmax()
         label = yolo_classes[class_id]
+        if label != class_name:
+            continue
         xc, yc, w, h = row[:4]
         x1 = (xc - w/2) / 640 * img_width
         y1 = (yc - h/2) / 640 * img_height
@@ -263,9 +267,9 @@ def upload_video_data(uuid, boxes, width, height, user_id):
 @socketio.on('get_all_videos')
 def get_all_videos(data):
     fetched_data = []
-    user_id = data['user_id']
-    print(user_id)
-    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id ASC'''
+    user_id = data['userId']
+    # print(user_id)
+    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
     cursor.execute(query)
     rows = cursor.fetchall()
     for row in rows:

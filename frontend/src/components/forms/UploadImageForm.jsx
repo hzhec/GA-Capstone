@@ -2,9 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 import { useNavigate } from 'react-router-dom';
+import classArray from '../classes-data';
 
 const UploadImageForm = () => {
 	const canvasRef = useRef(null);
+	const selectRef = useRef(null);
 	const [uuid, setUuid] = useState(null);
 	const [imageFile, setImageFile] = useState(null);
 	const [boxes, setBoxes] = useState(null);
@@ -24,7 +26,7 @@ const UploadImageForm = () => {
 	}, []);
 
 	useEffect(() => {
-		if (boxes) {
+		if (boxes != null) {
 			processImage(imageFile, boxes);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -33,20 +35,27 @@ const UploadImageForm = () => {
 	const handleImageChange = (event) => {
 		const newImageFile = event.target.files[0];
 		setImageFile(newImageFile);
+		const selectedClass = selectRef.current.value;
+		setIsLoading(false);
+		setBoxes(null);
+		setUuid(null);
 
 		if (newImageFile) {
 			socket.emit('upload_image_processing', {
 				imageFile: newImageFile,
 				userId: authToken.id,
+				className: selectedClass,
 			});
 			socket.on('image_process_completed', (data) => {
 				const { boxes, uuid } = data;
-				setBoxes(boxes);
-				setUuid(uuid);
-				setIsLoading(true);
+				// console.log(data['boxes'].length);
+				if (data['boxes'].length > 0) {
+					setBoxes(boxes);
+					setUuid(uuid);
+					setIsLoading(true);
+				}
 			});
 		}
-
 		// console.log("event", event.target.files[0]);
 	};
 
@@ -84,7 +93,7 @@ const UploadImageForm = () => {
 			});
 
 			const dataUrl = canvas.toDataURL();
-			if (dataUrl) {
+			if (boxes.length > 0) {
 				upload_image(dataUrl, uuid);
 			}
 		};
@@ -95,16 +104,23 @@ const UploadImageForm = () => {
 		socket.emit('upload_to_supabase', { processed_file: image_data, uuid: uuid });
 	};
 
+	const classes = classArray.map((class_name) => {
+		return <option key={class_name}>{class_name}</option>;
+	});
+
 	return (
 		<div className="flex justify-center w-full">
 			<div className="flex flex-col w-full justify-self-start mt-5">
 				<h1 className="text-3xl font-bold text-center my-4">Upload Image</h1>
+				<select className="select select-bordered w-full max-w-xs mx-auto" ref={selectRef}>
+					{classes}
+				</select>
 				<input
 					type="file"
 					id="imageInput"
 					accept="image/jpeg, image/png, image/jpg, image/webp"
 					onChange={handleImageChange}
-					className="file-input file-input-bordered  w-full max-w-xs mx-auto my-3"
+					className="file-input file-input-bordered w-full max-w-xs mx-auto my-3"
 				/>
 				{isLoading && <canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />}
 			</div>
