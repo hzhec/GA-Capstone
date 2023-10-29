@@ -14,8 +14,8 @@ const Navbar = () => {
 		cookies.remove('username');
 		setAuthToken({ id: '', username: '', token: '' });
 		setTimeout(() => {
-			notifySuccess('Logout successful!');
 			navigate('/login');
+			notifySuccess('Logout successful!');
 		}, 300);
 	};
 

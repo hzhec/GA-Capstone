@@ -22,10 +22,8 @@ function App() {
 				<Routes>
 					<Route path="/" element={<Layout />}>
 						<Route path="/" element={<MainPage />} />
-
 						<Route path="/login" element={<LoginForm />} />
 						<Route path="/register" element={<RegisterForm />} />
-
 						<Route path="/upload-image" element={<UploadImageForm />} />
 						<Route path="/upload-video" element={<UploadVideoForm />} />
 						<Route path="/live-camera" element={<LiveCamForm />} />
