@@ -25,10 +25,11 @@ const ProcessedImages = () => {
 	const socket = io('http://127.0.0.1:65432');
 
 	const navigate = useNavigate();
-	const { authToken } = useYoloContext();
+	const { authToken, notifyError } = useYoloContext();
 
 	useEffect(() => {
 		if (!authToken.token) {
+			notifyError('You are not logged in');
 			navigate('/login');
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,12 +38,13 @@ const ProcessedImages = () => {
 	useEffect(() => {
 		getAllImages();
 		return () => {
-			socket.disconnect();
+			socket.off();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllImages = () => {
+		// console.log(authToken);
 		socket.emit('get_all_images', { userId: authToken.id });
 		socket.on('all_images', (data) => {
 			setAllImages(data.all_images);

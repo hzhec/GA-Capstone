@@ -11,11 +11,13 @@ import RegisterForm from './components/forms/RegisterForm';
 import LoginForm from './components/forms/LoginForm';
 import YoloProvider from './components/context/yolo-context';
 import Layout from './components/Layout';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
 	return (
 		<>
 			<YoloProvider>
+				<Toaster />
 				<Navbar />
 				<Routes>
 					<Route path="/" element={<Layout />}>

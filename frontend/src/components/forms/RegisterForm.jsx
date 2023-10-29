@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useRef } from 'react';
 import { io } from 'socket.io-client';
+import { useYoloContext } from '../context/yolo-context';
 
 const RegisterForm = () => {
 	const formRef = useRef();
 	const socket = io('http://127.0.0.1:65432');
+	const { notifySuccess, notifyError } = useYoloContext();
 
 	const submitHandler = (event) => {
 		event.preventDefault();
@@ -15,8 +17,14 @@ const RegisterForm = () => {
 			socket.emit('register_account', { username: username, password: password });
 			formRef.current.reset();
 			socket.on('registration_status', (data) => {
-				console.log(data.msg);
+				setTimeout(() => {
+					if (data.msg == 'Account registered successfully') notifySuccess(data.msg);
+					else notifyError(data.msg);
+				}, 500);
 			});
+			setTimeout(() => {
+				socket.off();
+			}, 500);
 		}
 	};
 

@@ -13,10 +13,11 @@ const UploadImageForm = () => {
 	const socket = io('http://127.0.0.1:65432');
 
 	const navigate = useNavigate();
-	const { authToken } = useYoloContext();
+	const { authToken, notifyError } = useYoloContext();
 
 	useEffect(() => {
 		if (!authToken.token) {
+			notifyError('You are not logged in');
 			navigate('/login');
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps

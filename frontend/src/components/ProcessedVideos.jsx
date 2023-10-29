@@ -24,10 +24,11 @@ const ProcessedVideos = () => {
 
 	const socket = io('http://127.0.0.1:65432');
 	const navigate = useNavigate();
-	const { authToken } = useYoloContext();
+	const { authToken, notifyError } = useYoloContext();
 
 	useEffect(() => {
 		if (!authToken.token) {
+			notifyError('You are not logged in');
 			navigate('/login');
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -36,13 +37,13 @@ const ProcessedVideos = () => {
 	useEffect(() => {
 		getAllVideos();
 		return () => {
-			socket.disconnect();
+			socket.off();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllVideos = () => {
-		console.log(authToken.id);
+		// console.log(authToken);
 		socket.emit('get_all_videos', { user_id: authToken.id });
 		socket.on('all_videos', (data) => {
 			setAllVideos(data.all_videos);
