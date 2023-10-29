@@ -4,7 +4,7 @@ import { useYoloContext } from './context/yolo-context';
 
 const Layout = () => {
 	const { authToken } = useYoloContext();
-	console.log(authToken.token);
+	// console.log(authToken.token);
 	const location = useLocation();
 	const hideSidebar = location.pathname === '/register' || location.pathname === '/login';
 
