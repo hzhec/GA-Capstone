@@ -1,20 +1,22 @@
 import { Link, useNavigate } from 'react-router-dom';
-import Cookies from 'js-cookie';
 import { useYoloContext } from './context/yolo-context';
+import Cookies from 'universal-cookie';
 
 const Navbar = () => {
-	const token = Cookies.get('token');
-	const { setAuthToken } = useYoloContext();
+	const { authToken, setAuthToken, notifySuccess } = useYoloContext();
 	const navigate = useNavigate();
+	const cookies = new Cookies({ path: '/' });
+	const token = authToken.id;
 
 	const logoutHandler = () => {
-		Cookies.remove('id');
-		Cookies.remove('token');
-		Cookies.remove('username');
+		cookies.remove('id');
+		cookies.remove('token');
+		cookies.remove('username');
 		setAuthToken({ id: '', username: '', token: '' });
 		setTimeout(() => {
+			notifySuccess('Logout successful!');
 			navigate('/login');
-		}, 400);
+		}, 300);
 	};
 
 	return (
@@ -27,9 +29,11 @@ const Navbar = () => {
 				</div>
 				<div className="flex-none">
 					<ul className="menu menu-horizontal px-1">
-						<li>
-							<a>Link</a>
-						</li>
+						{authToken.username && (
+							<li>
+								<div>Welcome, {authToken.username}!</div>
+							</li>
+						)}
 						{token && (
 							<li>
 								<Link onClick={logoutHandler}>Logout</Link>

@@ -1,14 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
 import { io } from 'socket.io-client';
-import Cookies from 'js-cookie';
 import { useYoloContext } from '../context/yolo-context';
+import Cookies from 'universal-cookie';
 
 const LoginForm = () => {
 	const formRef = useRef();
 	const socket = io('http://127.0.0.1:65432');
 	const navigate = useNavigate();
-	const { setAuthToken } = useYoloContext();
+	const { setAuthToken, notifySuccess, notifyError } = useYoloContext();
+	const cookies = new Cookies({ path: '/' });
 
 	const submitHandler = (event) => {
 		event.preventDefault();
@@ -19,21 +20,27 @@ const LoginForm = () => {
 			socket.emit('login_account', { username: username, password: password });
 			formRef.current.reset();
 			socket.on('login_status', (data) => {
-				console.log(data.msg);
+				// console.log(data);
 				if (data.status === 'success') {
-					const token = Cookies.set('token', data.authToken);
-					const username = Cookies.set('username', data.username);
-					const id = Cookies.set('id', data.userId);
+					cookies.set('id', data.userId);
+					cookies.set('username', data.username);
+					cookies.set('token', data.authToken);
 					setAuthToken({
-						id: id,
-						username: username,
-						token: token,
+						id: data.userId,
+						username: data.username,
+						token: data.authToken,
 					});
 					setTimeout(() => {
+						notifySuccess(data.msg);
 						navigate('/');
-					}, 400);
+					}, 300);
+				} else {
+					notifyError(data.msg);
 				}
 			});
+			setTimeout(() => {
+				socket.off();
+			}, 500);
 		}
 	};
 
@@ -41,21 +48,27 @@ const LoginForm = () => {
 		socket.emit('login_account', { username: 'test', password: 'password' });
 		socket.on('login_status', (data) => {
 			// console.log(data.msg);
-			// console.log(data);
 			if (data.status === 'success') {
-				const token = Cookies.set('token', data.authToken);
-				const username = Cookies.set('username', data.username);
-				const id = Cookies.set('id', data.userId);
+				console.log(data);
+				cookies.set('id', data.userId);
+				cookies.set('username', data.username);
+				cookies.set('token', data.authToken);
 				setAuthToken({
-					id: id,
-					username: username,
-					token: token,
+					id: data.userId,
+					username: data.username,
+					token: data.authToken,
 				});
 				setTimeout(() => {
+					notifySuccess(data.msg);
 					navigate('/');
-				}, 400);
+				}, 300);
+			} else {
+				notifyError(data.msg);
 			}
 		});
+		setTimeout(() => {
+			socket.off();
+		}, 500);
 	};
 
 	return (
