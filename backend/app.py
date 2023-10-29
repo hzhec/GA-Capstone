@@ -71,8 +71,8 @@ except (psycopg2.Error, Exception) as error:
 def get_all_images(data):
     fetched_data = []
     user_id = data['userId']
-    query = '''SELECT * FROM image_boxes WHERE "user_id"=%s ORDER BY id ASC'''
-    cursor.execute(query, user_id)
+    query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id ASC'''
+    cursor.execute(query)
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
@@ -265,8 +265,8 @@ def get_all_videos(data):
     fetched_data = []
     user_id = data['user_id']
     print(user_id)
-    query = '''SELECT * FROM video_boxes WHERE "user_id"=%s ORDER BY id ASC'''
-    cursor.execute(query, user_id)
+    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id ASC'''
+    cursor.execute(query)
     rows = cursor.fetchall()
     for row in rows:
         fetched_data.append({
@@ -371,8 +371,8 @@ def encrypt_password(data):
 @socketio.on('login_account')
 def login_account(data):
     username = data['username']
-    query = '''SELECT id, username, password FROM accounts WHERE username=%s'''
-    cursor.execute(query, (username,))
+    cursor.execute("SELECT id, username, password FROM accounts WHERE username = %s",
+    (username,))
     account = cursor.fetchone()
     print(account)
     if account is None: 
