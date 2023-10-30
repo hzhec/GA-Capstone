@@ -1,7 +1,4 @@
-import { io } from 'socket.io-client';
-
 const DeleteMultipleMedias = (props) => {
-	const socket = io('http://127.0.0.1:65432');
 	let endpoint = '';
 
 	if (props.type == 'images') {
@@ -11,7 +8,28 @@ const DeleteMultipleMedias = (props) => {
 	}
 
 	const deleteHandler = () => {
-		socket.emit(endpoint, { uuid: props.uuidArray });
+		fetch(`http://127.0.0.1:65432/${endpoint}`, {
+			method: 'DELETE',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				uuidArray: props.uuidArray,
+			}),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				console.log(data);
+			})
+			.catch((err) => {
+				console.log(err);
+			});
 		props.handleToggle();
 		props.refresh();
 	};

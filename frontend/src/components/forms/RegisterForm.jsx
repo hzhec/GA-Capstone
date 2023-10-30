@@ -1,30 +1,46 @@
 import { Link } from 'react-router-dom';
 import { useRef } from 'react';
-import { io } from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 
 const RegisterForm = () => {
 	const formRef = useRef();
-	const socket = io('http://127.0.0.1:65432');
 	const { notifySuccess, notifyError } = useYoloContext();
 
 	const submitHandler = (event) => {
 		event.preventDefault();
-		const username = formRef.current['username'].value;
-		const password = formRef.current['password'].value;
+		const usernameInput = formRef.current['username'].value;
+		const passwordInput = formRef.current['password'].value;
+		console.log({ username: usernameInput, password: passwordInput });
+		console.log(JSON.stringify({ username: usernameInput, password: passwordInput }));
 
-		if (username && password) {
-			socket.emit('register_account', { username: username, password: password });
+		if (usernameInput && passwordInput) {
+			fetch('http://127.0.0.1:65432/register_account', {
+				method: 'POST',
+				mode: 'cors',
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: JSON.stringify({ username: usernameInput, password: passwordInput }),
+			})
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					console.log(data);
+					if (data.status === 'success') {
+						notifySuccess(data.msg);
+					} else {
+						notifyError(data.msg);
+					}
+				})
+				.catch((error) => {
+					console.log(error);
+				});
+
 			formRef.current.reset();
-			socket.on('registration_status', (data) => {
-				setTimeout(() => {
-					if (data.msg == 'Account registered successfully') notifySuccess(data.msg);
-					else notifyError(data.msg);
-				}, 500);
-			});
-			setTimeout(() => {
-				socket.off();
-			}, 500);
 		}
 	};
 

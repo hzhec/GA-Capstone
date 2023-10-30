@@ -1,5 +1,5 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
+from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO
 import psycopg2
 from dotenv import load_dotenv
@@ -66,10 +66,13 @@ except (psycopg2.Error, Exception) as error:
     # Error connecting to the database
     print('Error connecting to the database:', error)
 
-@socketio.on('get_all_images')
-def get_all_images(data):
+''' GET ALL IMAGES/VIDEOS DATA FROM DATABASE '''
+@app.route('/get_all_images', methods=['POST'])
+@cross_origin()
+def get_all_images():
     fetched_data = []
-    user_id = data['userId']
+    user_id = request.json['userId']
+    # print(user_id)
     query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -81,42 +84,83 @@ def get_all_images(data):
             'uuid': row[3],
             'boxes': row[4]
         })
-    socketio.emit('all_images', {'all_images': fetched_data})
-    
-@socketio.on('delete_image')
-def delete_image(data):
-    # data = json.loads(request.get_data())
-    uuid = data['uuid']
+    return jsonify({'all_images': fetched_data})
+
+@app.route('/get_all_videos', methods=['POST'])
+@cross_origin()
+def get_all_videos():
+    fetched_data = []
+    user_id = request.json['userId']
+    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    for row in rows:
+        fetched_data.append({
+            'id': row[0],
+            'created_at': str(row[1]),
+            'updated_at': str(row[2]),
+            'uuid': row[3],
+            'boxes': row[4]
+        })
+    return jsonify({'all_videos': fetched_data})
+
+''' DELETE IMAGES FROM DATABASE '''
+@app.route('/delete_image', methods=['DELETE'])
+@cross_origin()
+def delete_image():
+    uuid = request.json['uuid']
     cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
     conn.commit()
     supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
-    # return jsonify({'msg': 'Image deleted from database'})
-    socketio.emit('delete_image', {'msg': 'Image deleted from database'})
+    return jsonify({'msg': 'Image deleted from database'})
 
-@socketio.on('delete_multiple_images')
-def delete_multiple_images(data):
-    uuid = data['uuid']
+@app.route('/delete_multiple_images', methods=['DELETE'])
+@cross_origin()
+def delete_multiple_images():
+    uuid = request.json['uuidArray']
     print(uuid)
     cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
     conn.commit()
     for u in uuid: 
         supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
-    socketio.emit('delete_multiple_images', {'msg': 'Images deleted from database'})
+    return jsonify({'msg': 'Images deleted from database'})
     
-@socketio.on('upload_image_processing')
-def process_image(data):
-    user_id = data['userId']
-    image_file = data['imageFile']
-    class_name = data['className']
-    data_stream = BytesIO(image_file)
-    boxes = detect_objects_on_image(data_stream, class_name)
+''' DELETE VIDEOS FROM DATABASE '''
+@app.route('/delete_video', methods=['DELETE'])
+@cross_origin()
+def delete_video():
+    uuid = request.json['uuid']
+    cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
+    conn.commit()
+    supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
+    return jsonify({'msg': 'Video deleted from database'})
+
+@app.route('/delete_multiple_videos', methods=['DELETE'])
+@cross_origin()
+def delete_multiple_videos():
+    uuid = request.json['uuidArray']
+    cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
+    conn.commit()
+    for u in uuid: 
+        supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
+    return jsonify({'msg': 'Videos deleted from database'})
+
+''' PROCESS IMAGE '''
+@app.route('/upload_image_processing', methods=['POST'])
+@cross_origin()
+def process_image():
+    print(request.form.get)
+    image_file = request.files['imageFile']
+    user_id = request.form.get('userId')
+    class_name = request.form.get('className')
+    boxes = detect_objects_on_image(image_file.stream, class_name)
     uuid = str(uuid4())
     if len(boxes) != 0:
         query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id") VALUES (%s, %s, %s)'''
         cursor.execute(query, (uuid, str(boxes), user_id))
         conn.commit()
-    # return jsonify({'boxes': boxes, 'uuid': uuid})
-    socketio.emit('image_process_completed', {'boxes': boxes, 'uuid': uuid})
+        return jsonify({'boxes': boxes, 'uuid': uuid, 'status': 'success', 'msg': 'Objects detected'})
+    return jsonify({'msg': 'No objects detected', 'status': 'fail'})
 
 def detect_objects_on_image(image, class_name):
     input, img_width, img_height = prepare_input(image)
@@ -149,16 +193,18 @@ def process_output(output,img_width,img_height,class_name):
         prob = row[4:].max()
         if prob < 0.5:
             continue
-        class_id = row[4:].argmax()
-        label = yolo_classes[class_id]
-        if label != class_name:
-            continue
         xc, yc, w, h = row[:4]
         x1 = (xc - w/2) / 640 * img_width
         y1 = (yc - h/2) / 640 * img_height
         x2 = (xc + w/2) / 640 * img_width
         y2 = (yc + h/2) / 640 * img_height
-        boxes.append([x1, y1, x2, y2, label, prob])
+        
+        label = yolo_classes[row[4:].argmax()]
+        if class_name == 'none': 
+            boxes.append([x1, y1, x2, y2, label, prob])
+        else: 
+            if label == class_name:
+                boxes.append([x1, y1, x2, y2, label, prob])
 
     boxes.sort(key=lambda x: x[5], reverse=True)
     result = []
@@ -185,24 +231,17 @@ def intersection(box1,box2):
     x2 = min(box1_x2,box2_x2)
     y2 = min(box1_y2,box2_y2)
     return (x2-x1)*(y2-y1)
-    
-@socketio.on('upload_to_supabase')
-def upload_image_sup(data):
-    image_data = data['processed_file']
-    uuid = data['uuid']
-    image = base64.b64decode(image_data)
-    image_filename = f'{uuid}.jpeg'
-    supabase.storage.from_("image-bucket").upload(image_filename, image, {"content-type": "image/jpeg"})
-    image_data = ''
-    socketio.emit('upload_image_supabase', {'msg': 'Image uploaded to supabase storage'})
 
-@socketio.on('upload_video_processing')
-def load_video(data, id):
-    user_id = id['userId']
+''' PROCESS VIDEO '''
+@app.route('/upload_video_processing', methods=['POST'])
+@cross_origin()
+def load_video():
+    video_file = request.files['videoFile']
+    user_id = request.form.get('userId')
+    
     uuid = str(uuid4())
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid}.mp4')
-    with open(video_path, 'wb') as video_file:
-        video_file.write(data)
+    video_file.save(video_path)
     
     processed_video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
     boxes, width, height = process_video(video_path, processed_video_path)
@@ -213,7 +252,7 @@ def load_video(data, id):
     os.remove(video_path)
     os.remove(processed_video_path)
     
-    socketio.emit('video_process_completed', {'uuid': uuid})
+    return jsonify({'uuid': uuid, 'msg': 'Video processed'})
 
 def process_video(video, output_path):
     frames_info = []
@@ -252,6 +291,18 @@ def process_video(video, output_path):
     
     return frames_info, width, height
 
+''' UPLOAD IMAGE/VIDEO TO SUPABASE STORAGE '''
+@app.route('/upload_to_supabase', methods=['POST'])
+@cross_origin()
+def upload_image_sup():
+    image_data = request.json['processed_file']
+    uuid = request.json['uuid']
+    image = base64.b64decode(image_data)
+    image_filename = f'{uuid}.jpeg'
+    supabase.storage.from_("image-bucket").upload(image_filename, image, {"content-type": "image/jpeg"})
+    image_data = ''
+    return jsonify({'msg': 'Image uploaded to supabase storage'})
+
 def upload_video_sup(uuid, video_path):
     with open(video_path, 'rb') as video_file:
         supabase.storage.from_("video-bucket").upload(f'{uuid}.mp4', video_file, {'content-type':'video/mp4'})
@@ -263,41 +314,7 @@ def upload_video_data(uuid, boxes, width, height, user_id):
     conn.commit()
     return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
 
-@socketio.on('get_all_videos')
-def get_all_videos(data):
-    fetched_data = []
-    user_id = data['userId']
-    # print(user_id)
-    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    for row in rows:
-        fetched_data.append({
-            'id': row[0],
-            'created_at': str(row[1]),
-            'updated_at': str(row[2]),
-            'uuid': row[3],
-            'boxes': row[4]
-        })
-    socketio.emit('all_videos', {'all_videos': fetched_data})
-
-@socketio.on('delete_video')
-def delete_video(data):
-    uuid = data['uuid']
-    cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
-    conn.commit()
-    supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
-    socketio.emit('delete_video', {'msg': 'Video deleted from database'})
-
-@socketio.on('delete_multiple_videos')
-def delete_multiple_videos(data):
-    uuid = data['uuid']
-    cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
-    conn.commit()
-    for u in uuid: 
-        supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
-    socketio.emit('delete_multiple_videos', {'msg': 'Videos deleted from database'})
-
+''' RTSP/WEBCAM VIDEO STREAM '''
 @socketio.on('add_rtsp')
 def add_rtsp(data):
     global rtsp
@@ -350,20 +367,22 @@ def handle_connect():
 def handle_disconnect():
     global stop_event
     stop_event.set()
-    
-@socketio.on('register_account')
-def register_account(data):
-    username = data['username']
+
+''' REGISTER AND LOGIN ACCOUNT '''
+@app.route('/register_account', methods=['POST'])
+@cross_origin()
+def register_account():
+    username = request.json['username']
+    print(username)
     cursor.execute("SELECT id FROM accounts WHERE username = %s", (username,))
     row = cursor.fetchone()
     if row is not None:
-        socketio.emit('registration_status', {'msg': 'Account already exists'})
-        return
+        return jsonify({'msg': 'Account already exists', 'status': 'fail'})
   
-    encrypted_pw = encrypt_password({'password': data['password']})
+    encrypted_pw = encrypt_password({'password': request.json['password']})
     cursor.execute("INSERT INTO accounts (username, password) VALUES (%s, %s)", (username, str(encrypted_pw)))
     conn.commit()
-    socketio.emit('registration_status', {'msg': 'Account registered successfully'})
+    return jsonify({'msg': 'Account registered successfully', 'status': 'success'})
     
 def encrypt_password(data):
     password = data['password']
@@ -371,23 +390,21 @@ def encrypt_password(data):
     encrypted = bcrypt.hashpw(password.encode('utf-8'), salt)
     return encrypted
 
-@socketio.on('login_account')
-def login_account(data):
-    username = data['username']
+@app.route('/login_account', methods=['POST'])
+@cross_origin()
+def login_account():
+    username = request.json['username']
     cursor.execute("SELECT id, username, password FROM accounts WHERE username = %s",
     (username,))
     account = cursor.fetchone()
     print(account)
     if account is None: 
-        socketio.emit('login_status', {'msg': 'Account not found'})
-        return
-    decrypted = decrypt_password({'db_pw': account[2].split("'")[1], 'password': data['password']})
+        return jsonify({'msg': 'Account not found', 'status': 'fail'})
+    decrypted = decrypt_password({'db_pw': account[2].split("'")[1], 'password': request.json['password']})
     if not decrypted: 
-        socketio.emit('login_status', {'msg': 'Incorrect password'})
-        return
+        return jsonify({'msg': 'Incorrect password', 'status': 'fail'})
     token = create_secret_token(account[0])
-    # print(token)
-    socketio.emit('login_status', {'msg': 'Login successful', 'authToken': token, 'username': account[1], 'userId': account[0], 'status': 'success'})
+    return jsonify({'msg': 'Login successful', 'authToken': token, 'username': account[1], 'userId': account[0], 'status': 'success'})
 
 def decrypt_password(data):
     db_pw = data['db_pw'].encode('utf-8')

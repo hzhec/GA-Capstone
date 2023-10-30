@@ -1,12 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 import Cookies from 'universal-cookie';
 
 const LoginForm = () => {
 	const formRef = useRef();
-	const socket = io('http://127.0.0.1:65432');
+	// const socket = io('http://127.0.0.1:65432');
 	const navigate = useNavigate();
 	const { setAuthToken, notifySuccess, notifyError } = useYoloContext();
 	const cookies = new Cookies({ path: '/' });
@@ -17,10 +17,63 @@ const LoginForm = () => {
 		const password = formRef.current['password'].value;
 
 		if (username && password) {
-			socket.emit('login_account', { username: username, password: password });
+			fetch('http://127.0.0.1:65432/login_account', {
+				method: 'POST',
+				mode: 'cors',
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: JSON.stringify({ username: username, password: password }),
+			})
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					// console.log(data);
+					if (data.status === 'success') {
+						cookies.set('id', data.userId);
+						cookies.set('username', data.username);
+						cookies.set('token', data.authToken);
+						setAuthToken({
+							id: data.userId,
+							username: data.username,
+							token: data.authToken,
+						});
+						setTimeout(() => {
+							notifySuccess(data.msg);
+							navigate('/');
+						}, 300);
+					} else {
+						notifyError(data.msg);
+					}
+				})
+				.catch((err) => {
+					console.log(err);
+				});
 			formRef.current.reset();
-			socket.on('login_status', (data) => {
-				// console.log(data);
+		}
+	};
+
+	const loginTestAccountHandler = () => {
+		fetch('http://127.0.0.1:65432/login_account', {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({ username: 'test', password: 'password' }),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				console.log(data);
 				if (data.status === 'success') {
 					cookies.set('id', data.userId);
 					cookies.set('username', data.username);
@@ -38,37 +91,6 @@ const LoginForm = () => {
 					notifyError(data.msg);
 				}
 			});
-			setTimeout(() => {
-				socket.off();
-			}, 500);
-		}
-	};
-
-	const loginTestAccountHandler = () => {
-		socket.emit('login_account', { username: 'test', password: 'password' });
-		socket.on('login_status', (data) => {
-			// console.log(data.msg);
-			if (data.status === 'success') {
-				console.log(data);
-				cookies.set('id', data.userId);
-				cookies.set('username', data.username);
-				cookies.set('token', data.authToken);
-				setAuthToken({
-					id: data.userId,
-					username: data.username,
-					token: data.authToken,
-				});
-				setTimeout(() => {
-					notifySuccess(data.msg);
-					navigate('/');
-				}, 300);
-			} else {
-				notifyError(data.msg);
-			}
-		});
-		setTimeout(() => {
-			socket.off();
-		}, 500);
 	};
 
 	return (

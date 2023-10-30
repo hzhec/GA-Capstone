@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 import { useNavigate } from 'react-router-dom';
 import classArray from '../classes-data';
@@ -7,15 +6,14 @@ import classArray from '../classes-data';
 const UploadImageForm = () => {
 	const canvasRef = useRef(null);
 	const selectRef = useRef(null);
+	const inputRef = useRef(null);
 	const [uuid, setUuid] = useState(null);
 	const [imageFile, setImageFile] = useState(null);
 	const [boxes, setBoxes] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
 
-	const socket = io('http://127.0.0.1:65432');
-
 	const navigate = useNavigate();
-	const { authToken, notifyError } = useYoloContext();
+	const { authToken, notifyError, notifySuccess } = useYoloContext();
 
 	useEffect(() => {
 		if (!authToken.token) {
@@ -40,23 +38,41 @@ const UploadImageForm = () => {
 		setBoxes(null);
 		setUuid(null);
 
+		const data = new FormData();
+
 		if (newImageFile) {
-			socket.emit('upload_image_processing', {
-				imageFile: newImageFile,
-				userId: authToken.id,
-				className: selectedClass,
-			});
-			socket.on('image_process_completed', (data) => {
-				const { boxes, uuid } = data;
-				// console.log(data['boxes'].length);
-				if (data['boxes'].length > 0) {
-					setBoxes(boxes);
-					setUuid(uuid);
-					setIsLoading(true);
-				}
-			});
+			data.append('imageFile', newImageFile, 'imageFile');
+			data.append('userId', authToken.id);
+			data.append('className', selectedClass);
+			fetch('http://127.0.0.1:65432/upload_image_processing', {
+				method: 'POST',
+				mode: 'cors',
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: data,
+			})
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					const { boxes, uuid, status } = data;
+					if (status === 'success') {
+						setBoxes(boxes);
+						setUuid(uuid);
+						setIsLoading(true);
+						notifySuccess(data.msg);
+					} else {
+						notifyError(data.msg);
+					}
+				})
+				.catch((error) => {
+					console.log(error);
+				});
 		}
-		// console.log("event", event.target.files[0]);
+		inputRef.current.value = null;
 	};
 
 	const processImage = (file, boxes) => {
@@ -101,7 +117,29 @@ const UploadImageForm = () => {
 
 	const upload_image = (file, uuid) => {
 		const image_data = file.split(',')[1].replace(' ', '+');
-		socket.emit('upload_to_supabase', { processed_file: image_data, uuid: uuid });
+		fetch('http://127.0.0.1:65432/upload_to_supabase', {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				processed_file: image_data,
+				uuid: uuid,
+			}),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				console.log(data);
+			})
+			.catch((err) => {
+				console.log(err);
+			});
 	};
 
 	const classes = classArray.map((class_name) => {
@@ -113,6 +151,9 @@ const UploadImageForm = () => {
 			<div className="flex flex-col w-full justify-self-start mt-5">
 				<h1 className="text-3xl font-bold text-center my-4">Upload Image</h1>
 				<select className="select select-bordered w-full max-w-xs mx-auto" ref={selectRef}>
+					<option key="none" value="none">
+						Select a class
+					</option>
 					{classes}
 				</select>
 				<input
@@ -121,6 +162,7 @@ const UploadImageForm = () => {
 					accept="image/jpeg, image/png, image/jpg, image/webp"
 					onChange={handleImageChange}
 					className="file-input file-input-bordered w-full max-w-xs mx-auto my-3"
+					ref={inputRef}
 				/>
 				{isLoading && <canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />}
 			</div>

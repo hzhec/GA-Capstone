@@ -1,16 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 
 const UploadVideoForm = () => {
+	const inputRef = useRef(null);
 	const [uuid, setUuid] = useState(null);
 	const [isLoading, setIsLoading] = useState('');
 
-	const socket = io('http://127.0.0.1:65432');
-
 	const navigate = useNavigate();
-	const { authToken, notifyError } = useYoloContext();
+	const { authToken, notifyError, notifySuccess } = useYoloContext();
 
 	useEffect(() => {
 		if (!authToken.token) {
@@ -24,14 +22,35 @@ const UploadVideoForm = () => {
 		const newVideoFile = event.target.files[0];
 		setIsLoading('processing');
 
+		const data = new FormData();
+
 		if (newVideoFile) {
-			socket.emit('upload_video_processing', newVideoFile, { userId: authToken.id });
-			socket.on('video_process_completed', (data) => {
-				const { uuid } = data;
-				setUuid(uuid);
-				setIsLoading('completed');
-			});
+			data.append('videoFile', newVideoFile, 'videoFile');
+			data.append('userId', authToken.id);
+			fetch('http://127.0.0.1:65432/upload_video_processing', {
+				method: 'POST',
+				mode: 'cors',
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: data,
+			})
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					const { uuid } = data;
+					setUuid(uuid);
+					setIsLoading('completed');
+					notifySuccess(data.msg);
+				})
+				.catch((error) => {
+					console.log(error);
+				});
 		}
+		inputRef.current.value = null;
 	};
 
 	const isProcessing = isLoading === 'processing';
@@ -47,6 +66,7 @@ const UploadVideoForm = () => {
 					accept="video/mp4"
 					onChange={handleVideoChange}
 					className="file-input file-input-bordered  w-full max-w-xs mx-auto my-3"
+					ref={inputRef}
 				/>
 				<div className="flex justify-center w-full">
 					{isProcessing && (

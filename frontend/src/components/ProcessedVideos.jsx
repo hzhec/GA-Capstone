@@ -3,7 +3,6 @@ import PreviewMedia from './PreviewMedia';
 import DeleteMediaModal from './DeleteMediaModal';
 import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
-import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { useYoloContext } from './context/yolo-context';
 
@@ -22,7 +21,6 @@ const ProcessedVideos = () => {
 	const idxOfLastVideo = currentPage * VideosPerPage; // 1 * 10 = 10
 	const idxOfFirstVideo = idxOfLastVideo - VideosPerPage; // 10 - 10 = 0
 
-	const socket = io('http://127.0.0.1:65432');
 	const navigate = useNavigate();
 	const { authToken, notifyError } = useYoloContext();
 
@@ -36,18 +34,33 @@ const ProcessedVideos = () => {
 
 	useEffect(() => {
 		getAllVideos();
-		return () => {
-			socket.off();
-		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllVideos = () => {
 		// console.log(authToken);
-		socket.emit('get_all_videos', { userId: authToken.id });
-		socket.on('all_videos', (data) => {
-			setAllVideos(data.all_videos);
-		});
+		fetch('http://127.0.0.1:65432/get_all_videos', {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				userId: authToken.id,
+			}),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				setAllVideos(data.all_videos);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
 	};
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
@@ -94,7 +107,7 @@ const ProcessedVideos = () => {
 			getAllVideos();
 			setRefresh(false);
 			clearTimeout(timer);
-		}, 1000);
+		}, 800);
 	};
 
 	return (

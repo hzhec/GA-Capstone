@@ -3,7 +3,6 @@ import PreviewMedia from './PreviewMedia';
 import DeleteMediaModal from './DeleteMediaModal';
 import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
-import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { useYoloContext } from './context/yolo-context';
 
@@ -22,8 +21,6 @@ const ProcessedImages = () => {
 	const idxOfLastImage = currentPage * imagesPerPage; // 1 * 10 = 10
 	const idxOfFirstImage = idxOfLastImage - imagesPerPage; // 10 - 10 = 0
 
-	const socket = io('http://127.0.0.1:65432');
-
 	const navigate = useNavigate();
 	const { authToken, notifyError } = useYoloContext();
 
@@ -37,18 +34,33 @@ const ProcessedImages = () => {
 
 	useEffect(() => {
 		getAllImages();
-		return () => {
-			socket.off();
-		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllImages = () => {
 		// console.log(authToken);
-		socket.emit('get_all_images', { userId: authToken.id });
-		socket.on('all_images', (data) => {
-			setAllImages(data.all_images);
-		});
+		fetch('http://127.0.0.1:65432/get_all_images', {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				userId: authToken.id,
+			}),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				setAllImages(data.all_images);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
 	};
 
 	const paginate = (pageNum) => setCurrentPage(pageNum);
@@ -95,8 +107,8 @@ const ProcessedImages = () => {
 			getAllImages();
 			setRefresh(false);
 			clearTimeout(timer);
-			socket.disconnect();
-		}, 1000);
+			// socket.disconnect();
+		}, 800);
 	};
 
 	return (
