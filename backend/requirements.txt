@@ -2,7 +2,7 @@ bcrypt
 blinker==1.6.2
 click==8.1.7
 colorama==0.4.6
-dnspython==2.4.2
+dnspython
 Flask==2.3.3
 flask-cors
 flask-socketio
