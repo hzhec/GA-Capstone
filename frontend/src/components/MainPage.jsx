@@ -1,5 +1,4 @@
 import { Toaster } from 'react-hot-toast';
-import StatsBanner from './StatsBanner';
 
 const MainPage = () => {
 	return (
@@ -10,7 +9,6 @@ const MainPage = () => {
 					<div className="text-3xl font-bold text-slate-500 py-1 my-10 ">
 						YOLO (You Only Look Once) <br />a real-time object detection algorithm
 					</div>
-					<StatsBanner />
 				</div>
 			</div>
 		</>
