@@ -8,7 +8,6 @@ flask-cors
 flask-socketio
 itsdangerous
 Jinja2
-json
 jsonify
 pyjwt
 MarkupSafe

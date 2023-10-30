@@ -1,5 +1,5 @@
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS, cross_origin
+from flask import Flask, jsonify
+from flask_cors import CORS
 from flask_socketio import SocketIO
 import psycopg2
 from dotenv import load_dotenv
@@ -10,7 +10,6 @@ from ultralytics import YOLO
 import onnxruntime as ort
 from uuid import uuid4
 import base64
-import json
 import cv2
 from io import BytesIO
 from threading import Event
