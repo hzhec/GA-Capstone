@@ -5,16 +5,19 @@ import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 import { useYoloContext } from './context/yolo-context';
+import UpdateMedia from './UpdateModal';
 
 const ProcessedImages = () => {
 	const [allImages, setAllImages] = useState();
 	const [currentPage, setCurrentPage] = useState(1);
 	const imagesPerPage = 10;
 	const [showPreview, setShowPreview] = useState(false);
+	const [showUpdate, setShowUpdate] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	const [showDeleteMultiple, setShowDeleteMultiple] = useState(false);
 	const [previewUuid, setPreviewUuid] = useState();
 	const [deleteUuid, setDeleteUuid] = useState();
+	const [updateUuid, setUpdateUuid] = useState();
 	const [checkedImages, setCheckedImages] = useState([]);
 	const [refresh, setRefresh] = useState(false);
 
@@ -33,7 +36,11 @@ const ProcessedImages = () => {
 	}, []);
 
 	useEffect(() => {
-		getAllImages();
+		if (authToken.username === 'admin') {
+			adminGetAllImages();
+		} else {
+			getAllImages();
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -63,10 +70,27 @@ const ProcessedImages = () => {
 			});
 	};
 
+	const adminGetAllImages = () => {
+		fetch('http://127.0.0.1:65432/admin_get_all_medias?mediaType=image')
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				setAllImages(data.all_medias);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
+	};
+
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
 	const openPreviewModal = () => {
 		setShowPreview((prev) => !prev);
+	};
+
+	const openUpdateModal = () => {
+		setShowUpdate((prev) => !prev);
 	};
 
 	const openDeleteModal = () => {
@@ -80,6 +104,11 @@ const ProcessedImages = () => {
 	const previewHandler = (uuid) => {
 		setPreviewUuid(uuid);
 		openPreviewModal();
+	};
+
+	const updateHandler = (uuid) => {
+		setUpdateUuid(uuid);
+		openUpdateModal();
 	};
 
 	const checkboxChangeHandler = (event, uuid) => {
@@ -128,7 +157,7 @@ const ProcessedImages = () => {
 				</div>
 				<div className="flex justify-center items-center my-auto">
 					<label
-						htmlFor="delete-multiple-images"
+						htmlFor="delete-multiple-medias"
 						className="btn btn-error btn-xs text-white"
 						disabled={checkedImages.length < 2}
 						onClick={() => deleteMultipleHandler(checkedImages)}
@@ -138,23 +167,30 @@ const ProcessedImages = () => {
 				</div>
 			</div>
 			<PreviewMedia
-				handleToggle={() => openPreviewModal()}
+				handleToggle={openPreviewModal}
 				open={showPreview}
 				uuid={previewUuid}
 				type="images"
 			/>
+			<UpdateMedia
+				handleToggle={openUpdateModal}
+				open={showUpdate}
+				uuid={updateUuid}
+				refresh={refreshHandler}
+				type="images"
+			/>
 			<DeleteMediaModal
-				handleToggle={() => openDeleteModal()}
+				handleToggle={openDeleteModal}
 				open={showDelete}
 				uuid={deleteUuid}
-				refresh={() => refreshHandler()}
+				refresh={refreshHandler}
 				type="images"
 			/>
 			<DeleteMultipleMedias
-				handleToggle={() => openDeleteMultipleModal()}
+				handleToggle={openDeleteMultipleModal}
 				open={showDeleteMultiple}
 				uuidArray={checkedImages}
-				refresh={() => refreshHandler()}
+				refresh={refreshHandler}
 				type="images"
 			/>
 			{allImages && (
@@ -166,7 +202,9 @@ const ProcessedImages = () => {
 									<th></th>
 									<th>Id</th>
 									<th>Uuid</th>
+									<th>Name</th>
 									<th>Uploaded Date</th>
+									<th></th>
 									<th></th>
 									<th></th>
 								</tr>
@@ -193,10 +231,22 @@ const ProcessedImages = () => {
 										<td>
 											<div className="text-sm">{image.uuid}</div>
 										</td>
+										<td>
+											<div className="text-sm">{image.image_name}</div>
+										</td>
 										<td>{image['created_at']}</td>
 										<td>
 											<label
-												htmlFor="preview-image"
+												htmlFor="update-media"
+												className="btn btn-xs"
+												onClick={() => updateHandler(image.uuid)}
+											>
+												Update
+											</label>
+										</td>
+										<td>
+											<label
+												htmlFor="preview-media"
 												className="btn btn-xs"
 												onClick={() => previewHandler(image.uuid)}
 											>
@@ -206,7 +256,7 @@ const ProcessedImages = () => {
 										<td>
 											<div className="flex justify-center items-center">
 												<label
-													htmlFor="delete-image"
+													htmlFor="delete-media"
 													className="btn btn-square btn-outline btn-xs btn-error"
 													disabled={!checkedImages.includes(image.uuid)}
 													onClick={() => deleteImageHandler(image.uuid)}

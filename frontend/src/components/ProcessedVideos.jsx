@@ -5,16 +5,19 @@ import DeleteMultipleMedias from './DeleteMultipleMedias';
 import { IoMdRefresh } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 import { useYoloContext } from './context/yolo-context';
+import UpdateMedia from './UpdateModal';
 
 const ProcessedVideos = () => {
 	const [allVideos, setAllVideos] = useState();
 	const [currentPage, setCurrentPage] = useState(1);
 	const VideosPerPage = 10;
 	const [showPreview, setShowPreview] = useState(false);
+	const [showUpdate, setShowUpdate] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	const [showDeleteMultiple, setShowDeleteMultiple] = useState(false);
 	const [previewUuid, setPreviewUuid] = useState();
 	const [deleteUuid, setDeleteUuid] = useState();
+	const [updateUuid, setUpdateUuid] = useState();
 	const [checkedVideos, setCheckedVideos] = useState([]);
 	const [refresh, setRefresh] = useState(false);
 
@@ -33,7 +36,11 @@ const ProcessedVideos = () => {
 	}, []);
 
 	useEffect(() => {
-		getAllVideos();
+		if (authToken.username === 'admin') {
+			adminGetAllVideos();
+		} else {
+			getAllVideos();
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -63,10 +70,27 @@ const ProcessedVideos = () => {
 			});
 	};
 
+	const adminGetAllVideos = () => {
+		fetch('http://127.0.0.1:65432/admin_get_all_medias?mediaType=video')
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				setAllVideos(data.all_medias);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
+	};
+
 	const paginate = (pageNum) => setCurrentPage(pageNum);
 
 	const openPreviewModal = () => {
 		setShowPreview((prev) => !prev);
+	};
+
+	const openUpdateModal = () => {
+		setShowUpdate((prev) => !prev);
 	};
 
 	const openDeleteModal = () => {
@@ -80,6 +104,11 @@ const ProcessedVideos = () => {
 	const previewVideoHandler = (uuid) => {
 		setPreviewUuid(uuid);
 		openPreviewModal();
+	};
+
+	const updateHandler = (uuid) => {
+		setUpdateUuid(uuid);
+		openUpdateModal();
 	};
 
 	const checkboxChangeHandler = (event, uuid) => {
@@ -127,7 +156,7 @@ const ProcessedVideos = () => {
 				</div>
 				<div className="flex justify-center items-center my-auto">
 					<label
-						htmlFor="delete-multiple-Videos"
+						htmlFor="delete-multiple-medias"
 						className="btn btn-error btn-xs text-white"
 						disabled={checkedVideos.length < 2}
 						onClick={() => deleteMultipleVideosHandler(checkedVideos)}
@@ -137,23 +166,31 @@ const ProcessedVideos = () => {
 				</div>
 			</div>
 			<PreviewMedia
-				handleToggle={() => openPreviewModal()}
+				handleToggle={openPreviewModal}
 				open={showPreview}
 				uuid={previewUuid}
+				refresh={refreshHandler}
+				type="videos"
+			/>
+			<UpdateMedia
+				handleToggle={openUpdateModal}
+				open={showUpdate}
+				uuid={updateUuid}
+				refresh={refreshHandler}
 				type="videos"
 			/>
 			<DeleteMediaModal
-				handleToggle={() => openDeleteModal()}
+				handleToggle={openDeleteModal}
 				open={showDelete}
 				uuid={deleteUuid}
-				refresh={() => refreshHandler()}
+				refresh={refreshHandler}
 				type="videos"
 			/>
 			<DeleteMultipleMedias
-				handleToggle={() => openDeleteMultipleModal()}
+				handleToggle={openDeleteMultipleModal}
 				open={showDeleteMultiple}
 				uuidArray={checkedVideos}
-				refresh={() => refreshHandler()}
+				refresh={refreshHandler}
 				type="videos"
 			/>
 			{allVideos && (
@@ -165,39 +202,53 @@ const ProcessedVideos = () => {
 									<th></th>
 									<th>Id</th>
 									<th>Uuid</th>
+									<th>Name</th>
 									<th>Uploaded Date</th>
+									<th></th>
 									<th></th>
 									<th></th>
 								</tr>
 							</thead>
 							<tbody>
-								{allVideos.slice(idxOfFirstVideo, idxOfLastVideo).map((Video) => (
-									<tr key={Video.uuid}>
+								{allVideos.slice(idxOfFirstVideo, idxOfLastVideo).map((video) => (
+									<tr key={video.uuid}>
 										<th>
 											<label>
 												<input
 													type="checkbox"
 													className="checkbox checkbox-sm"
 													onChange={(event) =>
-														checkboxChangeHandler(event, Video.uuid)
+														checkboxChangeHandler(event, video.uuid)
 													}
 												/>
 											</label>
 										</th>
 										<td>
 											<div className="flex items-center">
-												<div className="font-bold">{Video.id}</div>
+												<div className="font-bold">{video.id}</div>
 											</div>
 										</td>
 										<td>
-											<div className="text-sm">{Video.uuid}</div>
+											<div className="text-sm">{video.uuid}</div>
 										</td>
-										<td>{Video['created_at']}</td>
+										<td>
+											<div className="text-sm">{video.video_name}</div>
+										</td>
+										<td>{video['created_at']}</td>
 										<td>
 											<label
-												htmlFor="preview-Video"
+												htmlFor="update-media"
 												className="btn btn-xs"
-												onClick={() => previewVideoHandler(Video.uuid)}
+												onClick={() => updateHandler(video.uuid)}
+											>
+												Update
+											</label>
+										</td>
+										<td>
+											<label
+												htmlFor="preview-media"
+												className="btn btn-xs"
+												onClick={() => previewVideoHandler(video.uuid)}
 											>
 												Preview
 											</label>
@@ -205,10 +256,10 @@ const ProcessedVideos = () => {
 										<td>
 											<div className="flex justify-center items-center">
 												<label
-													htmlFor="delete-Video"
+													htmlFor="delete-media"
 													className="btn btn-square btn-outline btn-xs btn-error"
-													disabled={!checkedVideos.includes(Video.uuid)}
-													onClick={() => deleteVideoHandler(Video.uuid)}
+													disabled={!checkedVideos.includes(video.uuid)}
+													onClick={() => deleteVideoHandler(video.uuid)}
 												>
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
