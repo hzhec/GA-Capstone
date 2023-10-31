@@ -9,7 +9,9 @@ const LiveCamForm = () => {
 	const [isConnected, setIsConnected] = useState(false);
 	const [connectStatus, setConnectStatus] = useState(false);
 
-	const socket = io('http://127.0.0.1:65432');
+	const socket = io('http://127.0.0.1:65432', {
+		transports: ['websocket'],
+	});
 	const navigate = useNavigate();
 	const { authToken, notifyError } = useYoloContext();
 
@@ -46,7 +48,7 @@ const LiveCamForm = () => {
 			setIsConnected(true);
 			setConnectStatus(false);
 		}, 1500);
-		socket.emit('add_rtsp', { rtsp: rtspUrl });
+		socket.emit('add_rtsp', { rtsp: rtspUrl, userId: authToken.id });
 		socket.emit('connect_live_cam');
 		return () => {
 			clearTimeout(timer);
