@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
 import { useYoloContext } from '../context/yolo-context';
 
 const RegisterForm = () => {
 	const formRef = useRef();
 	const { notifySuccess, notifyError } = useYoloContext();
+	const navigate = useNavigate();
 
 	const submitHandler = (event) => {
 		event.preventDefault();
@@ -41,6 +42,7 @@ const RegisterForm = () => {
 				});
 
 			formRef.current.reset();
+			navigate('/login');
 		}
 	};
 
