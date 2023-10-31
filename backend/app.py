@@ -54,6 +54,7 @@ app.config['UPLOAD_FOLDER'] = 'tmp'
 CORS(app,resources={r"/*":{"origins":"*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=MAX_BUFFER_SIZE)
 rtsp = ''
+live_cam_userid = ''
 stop_event = Event()
 
 try:
@@ -82,7 +83,8 @@ def get_all_images():
             'created_at': str(row[1]),
             'updated_at': str(row[2]),
             'uuid': row[3],
-            'boxes': row[4]
+            'boxes': row[4],
+            'image_name': row[6],
         })
     return jsonify({'all_images': fetched_data})
 
@@ -100,9 +102,62 @@ def get_all_videos():
             'created_at': str(row[1]),
             'updated_at': str(row[2]),
             'uuid': row[3],
-            'boxes': row[4]
+            'boxes': row[4],
+            'video_name': row[8],
         })
     return jsonify({'all_videos': fetched_data})
+
+@app.route('/admin_get_all_medias')
+@cross_origin()
+def get_all_media():
+    media_type = request.args.get('mediaType')
+    fetched_data = []
+    if media_type == 'image':
+        query = '''SELECT * FROM image_boxes ORDER BY id DESC'''
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        for row in rows:
+            fetched_data.append({
+                'id': row[0],
+                'created_at': str(row[1]),
+                'updated_at': str(row[2]),
+                'uuid': row[3],
+                'boxes': row[4],
+                'image_name': row[6],
+            })
+    elif media_type == 'video':
+        query = '''SELECT * FROM video_boxes ORDER BY id DESC'''
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        for row in rows:
+            fetched_data.append({
+                'id': row[0],
+                'created_at': str(row[1]),
+                'updated_at': str(row[2]),
+                'uuid': row[3],
+                'boxes': row[4],
+                'video_name': row[8],
+            })
+    return jsonify({'all_medias': fetched_data})
+
+''' UPDATE IMAGE/VIDEO NAME IN DATABASE '''
+@app.route('/update_image', methods=['PUT'])
+@cross_origin()
+def update_image_name():
+    uuid = request.json['uuid']
+    image_name = request.json['name']
+    cursor.execute("UPDATE image_boxes SET image_name=%s WHERE uuid=%s", (image_name, uuid))
+    conn.commit()
+    return jsonify({'msg': 'Image name updated'})
+
+@app.route('/update_video', methods=['PUT'])
+@cross_origin()
+def update_video_name():
+    uuid = request.json['uuid']
+    video_name = request.json['name']
+    cursor.execute("UPDATE video_boxes SET video_name=%s WHERE uuid=%s", (video_name, uuid))
+    conn.commit()
+    return jsonify({'msg': 'Video name updated'})
 
 ''' DELETE IMAGES FROM DATABASE '''
 @app.route('/delete_image', methods=['DELETE'])
@@ -170,12 +225,20 @@ def detect_objects_on_image(image, class_name):
     return results
 
 def prepare_input(image):
+    """
+    Prepare input image for model prediction.
+    Returns:
+        tuple: A tuple containing the prepared input image as a numpy array,
+        the original image width, and the original image height.
+    """
     img = Image.open(image)
     img_width, img_height = img.size
     img = img.resize((640, 640))
     img = img.convert("RGB")
     input = np.array(img)
+    # Transpose the image dimensions
     input = input.transpose(2, 0, 1)
+    # Reshape the image to match the model input shape
     input = input.reshape(1, 3, 640, 640) / 255.0
     return input.astype(np.float32), img_width, img_height
 
@@ -184,33 +247,48 @@ def run_model(input):
     outputs = model.run(["output0"], {"images":input})
     return outputs[0]
 
-def process_output(output,img_width,img_height,class_name):
+def process_output(output, img_width, img_height, class_name):
+    """
+    Process the output of a model inference and extract relevant bounding boxes.
+    """
+    # Convert output to float and transpose it
     output = output[0].astype(float)
     output = output.transpose()
 
     boxes = []
     for row in output:
+        # Find the maximum probability and skip if it's below 0.5 (50%)
         prob = row[4:].max()
         if prob < 0.5:
             continue
+        
+        # Extract the coordinates of the bounding box
         xc, yc, w, h = row[:4]
         x1 = (xc - w/2) / 640 * img_width
         y1 = (yc - h/2) / 640 * img_height
         x2 = (xc + w/2) / 640 * img_width
         y2 = (yc + h/2) / 640 * img_height
         
+        # Get the label of the bounding box
         label = yolo_classes[row[4:].argmax()]
+        
+        # Append the bounding box to the list if it matches the specified class
         if class_name == 'none': 
             boxes.append([x1, y1, x2, y2, label, prob])
         else: 
             if label == class_name:
                 boxes.append([x1, y1, x2, y2, label, prob])
 
+    # Sort the bounding boxes by probability in descending order
     boxes.sort(key=lambda x: x[5], reverse=True)
+    
     result = []
     while len(boxes) > 0:
+        # Add the box with the highest probability to the result
         result.append(boxes[0])
+        # Remove all boxes with high intersection over union (IOU) with the selected box
         boxes = [box for box in boxes if iou(box, boxes[0]) < 0.7]
+    
     return result
 
 def iou(box1,box2):
@@ -306,30 +384,37 @@ def upload_image_sup():
 def upload_video_sup(uuid, video_path):
     with open(video_path, 'rb') as video_file:
         supabase.storage.from_("video-bucket").upload(f'{uuid}.mp4', video_file, {'content-type':'video/mp4'})
-    return jsonify({'msg': 'Video uploaded to supabase storage'})
 
 def upload_video_data(uuid, boxes, width, height, user_id):
     query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height", "user_id") VALUES (%s, %s, %s, %s, %s)'''
     cursor.execute(query, (uuid, str(boxes), width, height, user_id))
     conn.commit()
-    return jsonify({'uuid': uuid, 'frames': str(boxes), 'width': width, 'height': height})
 
 ''' RTSP/WEBCAM VIDEO STREAM '''
 @socketio.on('add_rtsp')
 def add_rtsp(data):
-    global rtsp
+    global rtsp, live_cam_userid
     rtsp = data['rtsp']
+    live_cam_userid = data['userId']
     
 @socketio.on('video_stream')
 def video_stream(stop_event):
-    global rtsp
+    global rtsp, live_cam_userid
+    live_camera_uuid = str(uuid4())
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{live_camera_uuid}.mp4')
+    boxes = []
+    
     if rtsp:
         if rtsp == '0':
             live_camera = cv2.VideoCapture(0)
         else: 
             live_camera = cv2.VideoCapture(rtsp)
         
-        # live_camera.set(cv2.CAP_PROP_FPS, 30)
+        width = int(live_camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(live_camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fourcc = cv2.VideoWriter_fourcc(*'h264')
+        video_output = cv2.VideoWriter(output_path, fourcc, 20.0, (width, height))
+        
         while not stop_event.is_set(): 
             if live_camera.isOpened():
                 ret, frame = live_camera.read()
@@ -345,16 +430,23 @@ def video_stream(stop_event):
                 for cls, bbox, conf in zip(classes, bboxes, confidences): 
                     if conf > 0.5:
                         (x, y, x2, y2) = bbox
+                        boxes.append([x, y, x2, y2, result.names[cls], conf])
                         cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
                         cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
                 
                 _, buffer = cv2.imencode('.jpeg', frame)
                 frame_as_base64 = base64.b64encode(buffer).decode('utf-8')
+                video_output.write(frame)
                 
                 socketio.emit('video_frame', {'image': frame_as_base64})
                 
         live_camera.release()
+        video_output.release()
         cv2.destroyAllWindows()
+        upload_video_sup(live_camera_uuid, output_path)
+        upload_video_data(live_camera_uuid, boxes, width, height, live_cam_userid)
+        
+        os.remove(output_path)
         rtsp = ''
         
 @socketio.on('connect_live_cam')
@@ -365,8 +457,8 @@ def handle_connect():
     
 @socketio.on('disconnect_live_cam')
 def handle_disconnect():
-    global stop_event
-    stop_event.set()
+    global stop_event, live_camera_uuid
+    stop_event.set()    
 
 ''' REGISTER AND LOGIN ACCOUNT '''
 @app.route('/register_account', methods=['POST'])
