@@ -44,7 +44,7 @@ const DeleteMediaModal = (props) => {
 
 	return (
 		<>
-			<dialog id="delete-image" className="modal" open={props.open} onClose={props.handleToggle}>
+			<dialog id="delete-media" className="modal" open={props.open} onClose={props.handleToggle}>
 				<div className="modal-box max-w-3xl">
 					<h3 className="font-bold text-lg">Delete Media</h3>
 					<p className="py-4">Are you sure you want to delete this media?</p>

@@ -18,7 +18,7 @@ const PreviewMedia = (props) => {
 	return (
 		<>
 			<dialog
-				id="preview-image"
+				id="preview-media"
 				className="modal"
 				open={props.open}
 				onClose={props.handleToggle}

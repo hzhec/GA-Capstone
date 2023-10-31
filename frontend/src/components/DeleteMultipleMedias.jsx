@@ -37,7 +37,7 @@ const DeleteMultipleMedias = (props) => {
 	return (
 		<>
 			<dialog
-				id="delete-multiple-images"
+				id="delete-multiple-medias"
 				className="modal"
 				open={props.open}
 				onClose={props.handleToggle}
