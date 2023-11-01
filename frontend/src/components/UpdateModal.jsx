@@ -20,20 +20,25 @@ const UpdateMedia = (props) => {
 	}, [props.uuid]);
 
 	const updateHandler = () => {
-		fetch(`http://127.0.0.1:65432/${props.type === 'images' ? 'update_image' : 'update_video'}`, {
-			method: 'PUT',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				uuid: props.uuid,
-				name: inputRef.current.value,
-			}),
-		})
+		fetch(
+			`${import.meta.env.VITE_APP_BACKEND_URL}/${
+				props.type === 'images' ? 'update_image' : 'update_video'
+			}`,
+			{
+				method: 'PUT',
+				mode: 'cors',
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: JSON.stringify({
+					uuid: props.uuid,
+					name: inputRef.current.value,
+				}),
+			}
+		)
 			.then((response) => {
 				return response.json();
 			})

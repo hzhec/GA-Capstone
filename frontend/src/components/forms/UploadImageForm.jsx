@@ -44,7 +44,7 @@ const UploadImageForm = () => {
 			data.append('imageFile', newImageFile, 'imageFile');
 			data.append('userId', authToken.id);
 			data.append('className', selectedClass);
-			fetch('http://127.0.0.1:65432/upload_image_processing', {
+			fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/upload_image_processing`, {
 				method: 'POST',
 				mode: 'cors',
 				headers: {
@@ -117,7 +117,7 @@ const UploadImageForm = () => {
 
 	const upload_image = (file, uuid) => {
 		const image_data = file.split(',')[1].replace(' ', '+');
-		fetch('http://127.0.0.1:65432/upload_to_supabase', {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/upload_to_supabase`, {
 			method: 'POST',
 			mode: 'cors',
 			headers: {

@@ -9,7 +9,7 @@ const LiveCamForm = () => {
 
 	const navigate = useNavigate();
 	const { authToken, notifyError, notifySuccess } = useYoloContext();
-	const liveStreamUrl = 'http://127.0.0.1:65432/start_stream';
+	const liveStreamUrl = `h${import.meta.env.VITE_APP_BACKEND_URL}/start_stream`;
 
 	useEffect(() => {
 		if (!authToken.token) {
@@ -21,7 +21,7 @@ const LiveCamForm = () => {
 
 	const connectHandler = () => {
 		setConnectStatus(true);
-		fetch('http://127.0.0.1:65432/add_rtsp', {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/add_rtsp`, {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
@@ -50,7 +50,7 @@ const LiveCamForm = () => {
 
 	const disconnectHandler = () => {
 		setIsConnected(false);
-		fetch('http://127.0.0.1:65432/stop_stream')
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/stop_stream`)
 			.then((response) => {
 				return response.json();
 			})

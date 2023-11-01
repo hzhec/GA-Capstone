@@ -46,7 +46,7 @@ const ProcessedImages = () => {
 
 	const getAllImages = () => {
 		// console.log(authToken);
-		fetch('http://127.0.0.1:65432/get_all_images', {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/get_all_images`, {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
@@ -71,7 +71,7 @@ const ProcessedImages = () => {
 	};
 
 	const adminGetAllImages = () => {
-		fetch('http://127.0.0.1:65432/admin_get_all_medias?mediaType=image')
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/admin_get_all_medias?mediaType=image`)
 			.then((response) => {
 				return response.json();
 			})

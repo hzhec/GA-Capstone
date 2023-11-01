@@ -15,19 +15,24 @@ const DeleteMediaModal = (props) => {
 	}, [props.uuid]);
 
 	const deleteHandler = () => {
-		fetch(`http://127.0.0.1:65432/${props.type === 'images' ? 'delete_image' : 'delete_video'}`, {
-			method: 'DELETE',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				uuid: props.uuid,
-			}),
-		})
+		fetch(
+			`${import.meta.env.VITE_APP_BACKEND_URL}/${
+				props.type === 'images' ? 'delete_image' : 'delete_video'
+			}`,
+			{
+				method: 'DELETE',
+				mode: 'cors',
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: JSON.stringify({
+					uuid: props.uuid,
+				}),
+			}
+		)
 			.then((response) => {
 				return response.json();
 			})

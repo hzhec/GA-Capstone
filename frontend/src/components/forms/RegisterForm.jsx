@@ -15,7 +15,7 @@ const RegisterForm = () => {
 		console.log(JSON.stringify({ username: usernameInput, password: passwordInput }));
 
 		if (usernameInput && passwordInput) {
-			fetch('http://127.0.0.1:65432/register_account', {
+			fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/register_account`, {
 				method: 'POST',
 				mode: 'cors',
 				headers: {

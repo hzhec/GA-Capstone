@@ -6,7 +6,6 @@ import Cookies from 'universal-cookie';
 
 const LoginForm = () => {
 	const formRef = useRef();
-	// const socket = io('http://127.0.0.1:65432');
 	const navigate = useNavigate();
 	const { setAuthToken, notifySuccess, notifyError } = useYoloContext();
 	const cookies = new Cookies({ path: '/' });
@@ -17,7 +16,7 @@ const LoginForm = () => {
 		const password = formRef.current['password'].value;
 
 		if (username && password) {
-			fetch('http://127.0.0.1:65432/login_account', {
+			fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/login_account`, {
 				method: 'POST',
 				mode: 'cors',
 				headers: {
@@ -58,7 +57,7 @@ const LoginForm = () => {
 	};
 
 	const loginTestAccountHandler = () => {
-		fetch('http://127.0.0.1:65432/login_account', {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/login_account`, {
 			method: 'POST',
 			mode: 'cors',
 			headers: {

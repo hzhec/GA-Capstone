@@ -27,7 +27,7 @@ const UploadVideoForm = () => {
 		if (newVideoFile) {
 			data.append('videoFile', newVideoFile, 'videoFile');
 			data.append('userId', authToken.id);
-			fetch('http://127.0.0.1:65432/upload_video_processing', {
+			fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/upload_video_processing`, {
 				method: 'POST',
 				mode: 'cors',
 				headers: {

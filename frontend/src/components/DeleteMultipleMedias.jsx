@@ -8,7 +8,7 @@ const DeleteMultipleMedias = (props) => {
 	}
 
 	const deleteHandler = () => {
-		fetch(`http://127.0.0.1:65432/${endpoint}`, {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/${endpoint}`, {
 			method: 'DELETE',
 			mode: 'cors',
 			headers: {

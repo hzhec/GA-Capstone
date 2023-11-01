@@ -46,7 +46,7 @@ const ProcessedVideos = () => {
 
 	const getAllVideos = () => {
 		// console.log(authToken);
-		fetch('http://127.0.0.1:65432/get_all_videos', {
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/get_all_videos`, {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
@@ -71,7 +71,7 @@ const ProcessedVideos = () => {
 	};
 
 	const adminGetAllVideos = () => {
-		fetch('http://127.0.0.1:65432/admin_get_all_medias?mediaType=video')
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/admin_get_all_medias?mediaType=video`)
 			.then((response) => {
 				return response.json();
 			})
