@@ -503,5 +503,4 @@ def create_secret_token(data):
     return jwt.encode({"username": data}, jwt_secret_key, algorithm="HS256")
 
 if __name__ == '__main__':
-    # app.run(host='0.0.0.0', port=65432, debug=True)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=65432, debug=True)
