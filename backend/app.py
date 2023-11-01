@@ -34,8 +34,7 @@ supabase = create_client(url, key)
 # supabase = create_client(url, headers, is_async=False)
 
 model = YOLO("yolov8m.pt")
-model.export(format="onnx")
-MAX_BUFFER_SIZE = 200 * 1000 * 1000  # 100 MB
+# model.export(format="onnx")
 
 with open("classes.txt", "r") as file:
     yolo_classes = [line.strip() for line in file]
@@ -504,4 +503,5 @@ def create_secret_token(data):
     return jwt.encode({"username": data}, jwt_secret_key, algorithm="HS256")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=65432, debug=True)
+    # app.run(host='0.0.0.0', port=65432, debug=True)
+    app.run(debug=True)
