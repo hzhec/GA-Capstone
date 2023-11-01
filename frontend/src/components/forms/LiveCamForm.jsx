@@ -1,19 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
 import { useYoloContext } from '../context/yolo-context';
 
 const LiveCamForm = () => {
-	const [videoUrl, setVideoUrl] = useState('');
-	const [rtspUrl, setRtspUrl] = useState('');
+	const rtspRef = useRef();
 	const [isConnected, setIsConnected] = useState(false);
 	const [connectStatus, setConnectStatus] = useState(false);
 
-	const socket = io('http://127.0.0.1:65432', {
-		transports: ['websocket'],
-	});
 	const navigate = useNavigate();
-	const { authToken, notifyError } = useYoloContext();
+	const { authToken, notifyError, notifySuccess } = useYoloContext();
+	const liveStreamUrl = 'http://127.0.0.1:65432/start_stream';
 
 	useEffect(() => {
 		if (!authToken.token) {
@@ -23,42 +19,47 @@ const LiveCamForm = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	useEffect(() => {
-		if (isConnected) {
-			setConnectStatus(false);
-			socket.on('video_frame', (data) => {
-				setVideoUrl(`data:image/jpeg;base64,${data.image}`);
-			});
-		}
-
-		return () => {
-			socket.disconnect();
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isConnected]);
-
-	const inputChangeHandler = (event) => {
-		event.preventDefault();
-		setRtspUrl(event.target.value);
-	};
-
 	const connectHandler = () => {
 		setConnectStatus(true);
-		const timer = setTimeout(() => {
+		fetch('http://127.0.0.1:65432/add_rtsp', {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({ rtsp: rtspRef.current.value, userId: authToken.id }),
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				notifySuccess(data.msg);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
+
+		setTimeout(() => {
 			setIsConnected(true);
 			setConnectStatus(false);
-		}, 1500);
-		socket.emit('add_rtsp', { rtsp: rtspUrl, userId: authToken.id });
-		socket.emit('connect_live_cam');
-		return () => {
-			clearTimeout(timer);
-		};
+		}, 5000);
 	};
 
 	const disconnectHandler = () => {
 		setIsConnected(false);
-		setVideoUrl('');
-		socket.emit('disconnect_live_cam');
+		fetch('http://127.0.0.1:65432/stop_stream')
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				notifySuccess(data.msg);
+			})
+			.catch((error) => {
+				console.log(error);
+			});
 	};
 
 	return (
@@ -71,7 +72,7 @@ const LiveCamForm = () => {
 							type="form"
 							placeholder="rtsp://<ip-address>"
 							className="input input-bordered w-full max-w-sm mx-1"
-							onChange={inputChangeHandler}
+							ref={rtspRef}
 						/>
 						<button className="btn" onClick={connectHandler}>
 							Connect
@@ -95,9 +96,9 @@ const LiveCamForm = () => {
 					</div>
 				)}
 				<div className="flex justify-center w-full mx-auto my-10">
-					{videoUrl && <img src={videoUrl} alt="RTSP Stream" width="65%" />}
+					{isConnected && <img src={liveStreamUrl} alt="RTSP Stream" width="70%" />}
 				</div>
-				{videoUrl && (
+				{isConnected && (
 					<div className="flex justify-center">
 						<button className="btn" onClick={disconnectHandler}>
 							Disconnect

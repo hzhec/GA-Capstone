@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO
 import psycopg2
@@ -44,7 +44,6 @@ with open("classes.txt", "r") as file:
     yolo_classes = [line.strip() for line in file]
     
 app = Flask(__name__)
-# CORS(app)
 
 app.config[
     'DATABASE_URL'
@@ -54,8 +53,8 @@ app.config['UPLOAD_FOLDER'] = 'tmp'
 CORS(app,resources={r"/*":{"origins":"*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=MAX_BUFFER_SIZE)
 rtsp = ''
-live_cam_userid = ''
-stop_event = Event()
+user_id = ''
+streaming_enabled = True
 
 try:
     # Connect to the database
@@ -390,75 +389,77 @@ def upload_video_data(uuid, boxes, width, height, user_id):
     cursor.execute(query, (uuid, str(boxes), width, height, user_id))
     conn.commit()
 
-''' RTSP/WEBCAM VIDEO STREAM '''
-@socketio.on('add_rtsp')
-def add_rtsp(data):
-    global rtsp, live_cam_userid
-    rtsp = data['rtsp']
-    live_cam_userid = data['userId']
+''' RTSP/WEBCAM VIDEO STREAM '''    
+@app.route('/add_rtsp', methods=['POST'])
+@cross_origin()
+def add_rtsp():
+    global rtsp, user_id, streaming_enabled
+    print(request.json)
+    rtsp = request.json['rtsp']
+    user_id = request.json['userId']
+    streaming_enabled = True
+    return jsonify({'msg': f'Connecting to {rtsp}'})
     
-@socketio.on('video_stream')
-def video_stream(stop_event):
-    global rtsp, live_cam_userid
-    live_camera_uuid = str(uuid4())
-    output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{live_camera_uuid}.mp4')
-    boxes = []
+def generate_frames():
+    global rtsp, user_id, streaming_enabled
+    boxes = [] 
+    uuid = str(uuid4())
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
     
-    if rtsp:
-        if rtsp == '0':
-            live_camera = cv2.VideoCapture(0)
-        else: 
-            live_camera = cv2.VideoCapture(rtsp)
+    if rtsp == '0':
+        live_stream = cv2.VideoCapture(0)
+    else:
+        live_stream = cv2.VideoCapture(rtsp)
         
-        width = int(live_camera.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(live_camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fourcc = cv2.VideoWriter_fourcc(*'h264')
-        video_output = cv2.VideoWriter(output_path, fourcc, 20.0, (width, height))
+    width = int(live_stream.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(live_stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'h264')
+    video_output = cv2.VideoWriter(output_path, fourcc, 20.0, (width, height))
         
-        while not stop_event.is_set(): 
-            if live_camera.isOpened():
-                ret, frame = live_camera.read()
-                if not ret:
-                    break 
-                
-                results = model(frame, device = 'mps')
-                result = results[0]
-                bboxes = np.array(result.boxes.xyxy.cpu(), dtype="int")
-                classes = np.array(result.boxes.cls.cpu(), dtype="int")
-                confidences = np.array(result.boxes.conf.cpu(), dtype="float")
-                
-                for cls, bbox, conf in zip(classes, bboxes, confidences): 
-                    if conf > 0.5:
-                        (x, y, x2, y2) = bbox
-                        boxes.append([x, y, x2, y2, result.names[cls], conf])
-                        cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
-                        cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
-                
-                _, buffer = cv2.imencode('.jpeg', frame)
-                frame_as_base64 = base64.b64encode(buffer).decode('utf-8')
-                video_output.write(frame)
-                
-                socketio.emit('video_frame', {'image': frame_as_base64})
-                
-        live_camera.release()
-        video_output.release()
-        cv2.destroyAllWindows()
-        upload_video_sup(live_camera_uuid, output_path)
-        upload_video_data(live_camera_uuid, boxes, width, height, live_cam_userid)
-        
-        os.remove(output_path)
-        rtsp = ''
-        
-@socketio.on('connect_live_cam')
-def handle_connect():
-    global stop_event
-    stop_event.clear()
-    socketio.start_background_task(video_stream, stop_event)
+    while streaming_enabled:
+        if live_stream.isOpened():
+            ret, frame = live_stream.read()
+            if not ret:
+                break
+            results = model(frame, device = 'mps')
+            result = results[0]
+            bboxes = np.array(result.boxes.xyxy.cpu(), dtype="int")
+            classes = np.array(result.boxes.cls.cpu(), dtype="int")
+            confidences = np.array(result.boxes.conf.cpu(), dtype="float")
+            
+            for cls, bbox, conf in zip(classes, bboxes, confidences): 
+                if conf > 0.5:
+                    (x, y, x2, y2) = bbox
+                    boxes.append([x, y, x2, y2, result.names[cls], conf])
+                    cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
+                    cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
+            
+            video_output.write(frame)
+            _, buffer = cv2.imencode('.jpeg', frame)
+            frame = buffer.tobytes()
+            
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n') 
+            
+    live_stream.release()
+    video_output.release()
+    cv2.destroyAllWindows()
+    upload_video_sup(uuid, output_path)
+    upload_video_data(uuid, boxes, width, height, user_id)
     
-@socketio.on('disconnect_live_cam')
-def handle_disconnect():
-    global stop_event, live_camera_uuid
-    stop_event.set()    
+    os.remove(output_path)
+    rtsp = ''
+    
+@app.route('/start_stream')
+@cross_origin()
+def live_stream():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/stop_stream')
+@cross_origin()
+def stop_stream():
+    global streaming_enabled
+    streaming_enabled = False
+    return jsonify({'msg': 'Stopped streaming'})
 
 ''' REGISTER AND LOGIN ACCOUNT '''
 @app.route('/register_account', methods=['POST'])
