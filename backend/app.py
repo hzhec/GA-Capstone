@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
-from flask_socketio import SocketIO
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -11,8 +10,6 @@ import onnxruntime as ort
 from uuid import uuid4
 import base64
 import cv2
-from io import BytesIO
-from threading import Event
 import bcrypt
 import jwt
 
@@ -51,7 +48,6 @@ app.config[
 app.config['UPLOAD_FOLDER'] = 'tmp'
 
 CORS(app,resources={r"/*":{"origins":"*"}})
-socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=MAX_BUFFER_SIZE)
 rtsp = ''
 user_id = ''
 streaming_enabled = True
@@ -508,4 +504,4 @@ def create_secret_token(data):
     return jwt.encode({"username": data}, jwt_secret_key, algorithm="HS256")
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=65432, debug=True)
+    app.run(host='0.0.0.0', port=65432, debug=True)
