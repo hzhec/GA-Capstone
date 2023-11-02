@@ -2,3 +2,8 @@
 venv
 .DS_Store
 tmp
+Dockerfile
+docker-compose.yml
+.env.docker
+profile.html
+profile.json
