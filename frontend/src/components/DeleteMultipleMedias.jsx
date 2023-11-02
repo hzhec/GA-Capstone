@@ -1,31 +1,30 @@
-const DeleteMultipleMedias = (props) => {
-	let endpoint = '';
+import { useYoloContext } from './context/yolo-context';
 
-	if (props.type == 'images') {
-		endpoint = 'delete_multiple_images';
-	} else {
-		endpoint = 'delete_multiple_videos';
-	}
+const DeleteMultipleMedias = (props) => {
+	const { notifySuccess } = useYoloContext();
 
 	const deleteHandler = () => {
-		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/${endpoint}`, {
-			method: 'DELETE',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				uuidArray: props.uuidArray,
-			}),
-		})
+		fetch(
+			`${import.meta.env.VITE_APP_BACKEND_URL}/deleteMultipleMedias?mediaType=${props.type}`,
+			{
+				method: 'DELETE',
+				mode: 'cors',
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Request-Headers': '*',
+					'Access-Control-Request-Method': '*',
+				},
+				body: JSON.stringify({
+					uuidArray: props.uuidArray,
+				}),
+			}
+		)
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				console.log(data);
+				notifySuccess(data.msg);
 			})
 			.catch((err) => {
 				console.log(err);

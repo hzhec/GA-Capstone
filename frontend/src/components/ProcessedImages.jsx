@@ -36,47 +36,20 @@ const ProcessedImages = () => {
 	}, []);
 
 	useEffect(() => {
-		if (authToken.username === 'admin') {
-			adminGetAllImages();
-		} else {
-			getAllImages();
-		}
+		getAllImages();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllImages = () => {
 		// console.log(authToken);
-		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/get_all_images`, {
-			method: 'POST',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				userId: authToken.id,
-			}),
-		})
+		fetch(
+			`${import.meta.env.VITE_APP_BACKEND_URL}/getAll?mediaType=image&user=${authToken.username}`
+		)
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				setAllImages(data.all_images);
-			})
-			.catch((error) => {
-				console.log(error);
-			});
-	};
-
-	const adminGetAllImages = () => {
-		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/admin_get_all_medias?mediaType=image`)
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				setAllImages(data.all_medias);
+				setAllImages(data.all_data);
 			})
 			.catch((error) => {
 				console.log(error);
@@ -170,28 +143,28 @@ const ProcessedImages = () => {
 				handleToggle={openPreviewModal}
 				open={showPreview}
 				uuid={previewUuid}
-				type="images"
+				type="image"
 			/>
 			<UpdateMedia
 				handleToggle={openUpdateModal}
 				open={showUpdate}
 				uuid={updateUuid}
 				refresh={refreshHandler}
-				type="images"
+				type="image"
 			/>
 			<DeleteMediaModal
 				handleToggle={openDeleteModal}
 				open={showDelete}
 				uuid={deleteUuid}
 				refresh={refreshHandler}
-				type="images"
+				type="image"
 			/>
 			<DeleteMultipleMedias
 				handleToggle={openDeleteMultipleModal}
 				open={showDeleteMultiple}
 				uuidArray={checkedImages}
 				refresh={refreshHandler}
-				type="images"
+				type="image"
 			/>
 			{allImages && (
 				<div className="p-5">
@@ -295,7 +268,9 @@ const ProcessedImages = () => {
 							<button className="join-item btn btn-sm">Page {currentPage}</button>
 							<button
 								className="join-item btn btn-sm"
-								disabled={allImages.length < 11}
+								disabled={
+									allImages.length < 11 || currentPage === Math.ceil(allImages.length / 10)
+								}
 								onClick={() => paginate(currentPage + 1)}
 							>
 								»

@@ -7,7 +7,7 @@ const UpdateMedia = (props) => {
 	const { notifySuccess } = useYoloContext();
 
 	const mediaUrl =
-		props.type === 'images'
+		props.type === 'image'
 			? `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`
 			: `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
 
@@ -20,25 +20,20 @@ const UpdateMedia = (props) => {
 	}, [props.uuid]);
 
 	const updateHandler = () => {
-		fetch(
-			`${import.meta.env.VITE_APP_BACKEND_URL}/${
-				props.type === 'images' ? 'update_image' : 'update_video'
-			}`,
-			{
-				method: 'PUT',
-				mode: 'cors',
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Request-Headers': '*',
-					'Access-Control-Request-Method': '*',
-				},
-				body: JSON.stringify({
-					uuid: props.uuid,
-					name: inputRef.current.value,
-				}),
-			}
-		)
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/updateName?mediaType=${props.type}`, {
+			method: 'PUT',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				uuid: props.uuid,
+				name: inputRef.current.value,
+			}),
+		})
 			.then((response) => {
 				return response.json();
 			})
@@ -72,7 +67,7 @@ const UpdateMedia = (props) => {
 								className="input input-bordered w-full max-w-xs"
 								ref={inputRef}
 							/>
-							{props.type == 'images' ? (
+							{props.type == 'image' ? (
 								<img src={mediaUrl} alt={`${props.uuid}`} className="py-4" />
 							) : (
 								<video src={mediaUrl} controls width="840" className="py-4" />

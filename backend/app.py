@@ -1,4 +1,3 @@
-from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 import psycopg2
 from dotenv import load_dotenv
@@ -12,12 +11,10 @@ import base64
 import cv2
 import bcrypt
 import jwt
-
-# from storage3 import create_client
 from supabase import create_client
+from flask import Flask, jsonify, request, Response
 
 load_dotenv()
-# Get database configuration from environment variables
 database_url = os.environ.get('DB_URL')
 database_name = os.environ.get('DB_NAME')
 database_password = os.environ.get('DB_PASSWORD')
@@ -29,9 +26,7 @@ jwt_secret_key = os.environ.get('JWT_SECRET_KEY')
 url = os.environ.get('SUPABASE_PROJECT_URL')
 key = os.environ.get('SUPABASE_API_KEY')
 # print(url, key)
-# headers = {'apiKey': key, 'Authorization': f'Bearer {key}'}
 supabase = create_client(url, key)
-# supabase = create_client(url, headers, is_async=False)
 
 model = YOLO("yolov8m.pt")
 # model.export(format="onnx")
@@ -52,147 +47,128 @@ user_id = ''
 streaming_enabled = True
 
 try:
-    # Connect to the database
     conn = psycopg2.connect(app.config['DATABASE_URL'])
     cursor = conn.cursor()
-    # Connection successful
     print('Connected to database successfully!')
 except (psycopg2.Error, Exception) as error:
-    # Error connecting to the database
     print('Error connecting to the database:', error)
 
 ''' GET ALL IMAGES/VIDEOS DATA FROM DATABASE '''
-@app.route('/get_all_images', methods=['POST'])
+@app.route('/getAll')
 @cross_origin()
-def get_all_images():
-    fetched_data = []
-    user_id = request.json['userId']
-    # print(user_id)
-    query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    for row in rows:
-        fetched_data.append({
-            'id': row[0],
-            'created_at': str(row[1]),
-            'updated_at': str(row[2]),
-            'uuid': row[3],
-            'boxes': row[4],
-            'image_name': row[6],
-        })
-    return jsonify({'all_images': fetched_data})
-
-@app.route('/get_all_videos', methods=['POST'])
-@cross_origin()
-def get_all_videos():
-    fetched_data = []
-    user_id = request.json['userId']
-    query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    for row in rows:
-        fetched_data.append({
-            'id': row[0],
-            'created_at': str(row[1]),
-            'updated_at': str(row[2]),
-            'uuid': row[3],
-            'boxes': row[4],
-            'video_name': row[8],
-        })
-    return jsonify({'all_videos': fetched_data})
-
-@app.route('/admin_get_all_medias')
-@cross_origin()
-def get_all_media():
+def get_all():
+    user = request.args.get('user')
     media_type = request.args.get('mediaType')
     fetched_data = []
-    if media_type == 'image':
-        query = '''SELECT * FROM image_boxes ORDER BY id DESC'''
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        for row in rows:
-            fetched_data.append({
-                'id': row[0],
-                'created_at': str(row[1]),
-                'updated_at': str(row[2]),
-                'uuid': row[3],
-                'boxes': row[4],
-                'image_name': row[6],
-            })
-    elif media_type == 'video':
-        query = '''SELECT * FROM video_boxes ORDER BY id DESC'''
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        for row in rows:
-            fetched_data.append({
-                'id': row[0],
-                'created_at': str(row[1]),
-                'updated_at': str(row[2]),
-                'uuid': row[3],
-                'boxes': row[4],
-                'video_name': row[8],
-            })
-    return jsonify({'all_medias': fetched_data})
+    if user == 'admin':
+        if media_type == 'image':
+            query = '''SELECT * FROM image_boxes ORDER BY id DESC'''
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row in rows:
+                fetched_data.append({
+                    'id': row[0],
+                    'created_at': str(row[1]),
+                    'updated_at': str(row[2]),
+                    'uuid': row[3],
+                    'boxes': row[4],
+                    'image_name': row[6],
+                })
+        elif media_type == 'video':
+            query = '''SELECT * FROM video_boxes ORDER BY id DESC'''
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row in rows:
+                fetched_data.append({
+                    'id': row[0],
+                    'created_at': str(row[1]),
+                    'updated_at': str(row[2]),
+                    'uuid': row[3],
+                    'boxes': row[4],
+                    'video_name': row[8],
+                })
+    else: 
+        cursor.execute("SELECT id FROM accounts WHERE username = %s", (user,))
+        user_id = cursor.fetchone()[0]
+        if media_type == 'image':
+            query = f'''SELECT * FROM image_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row in rows:
+                fetched_data.append({
+                    'id': row[0],
+                    'created_at': str(row[1]),
+                    'updated_at': str(row[2]),
+                    'uuid': row[3],
+                    'boxes': row[4],
+                    'image_name': row[6],
+                })
+        elif media_type == 'video':
+            query = f'''SELECT * FROM video_boxes WHERE "user_id"={user_id} ORDER BY id DESC'''
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row in rows:
+                fetched_data.append({
+                    'id': row[0],
+                    'created_at': str(row[1]),
+                    'updated_at': str(row[2]),
+                    'uuid': row[3],
+                    'boxes': row[4],
+                    'video_name': row[8],
+                })
+    return jsonify({'all_data': fetched_data})
 
 ''' UPDATE IMAGE/VIDEO NAME IN DATABASE '''
-@app.route('/update_image', methods=['PUT'])
+@app.route('/updateName', methods=['PUT'])
 @cross_origin()
-def update_image_name():
+def update_name():
     uuid = request.json['uuid']
-    image_name = request.json['name']
-    cursor.execute("UPDATE image_boxes SET image_name=%s WHERE uuid=%s", (image_name, uuid))
-    conn.commit()
-    return jsonify({'msg': 'Image name updated'})
+    name = request.json['name']
+    media_type = request.args.get('mediaType')
+    if media_type == 'image':
+        cursor.execute("UPDATE image_boxes SET image_name=%s WHERE uuid=%s", (name, uuid))
+        conn.commit()
+        return jsonify({'msg': 'Image name updated'})
+    elif media_type == 'video':
+        cursor.execute("UPDATE video_boxes SET video_name=%s WHERE uuid=%s", (name, uuid))
+        conn.commit()
+        return jsonify({'msg': 'Video name updated'})
 
-@app.route('/update_video', methods=['PUT'])
+''' DELETE SINGLE IMAGE/VIDEO FROM DATABASE '''
+@app.route('/deleteMedia', methods=['DELETE'])
 @cross_origin()
-def update_video_name():
+def delete_media():
     uuid = request.json['uuid']
-    video_name = request.json['name']
-    cursor.execute("UPDATE video_boxes SET video_name=%s WHERE uuid=%s", (video_name, uuid))
-    conn.commit()
-    return jsonify({'msg': 'Video name updated'})
-
-''' DELETE IMAGES FROM DATABASE '''
-@app.route('/delete_image', methods=['DELETE'])
-@cross_origin()
-def delete_image():
-    uuid = request.json['uuid']
-    cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
-    conn.commit()
-    supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
-    return jsonify({'msg': 'Image deleted from database'})
-
-@app.route('/delete_multiple_images', methods=['DELETE'])
-@cross_origin()
-def delete_multiple_images():
-    uuid = request.json['uuidArray']
-    print(uuid)
-    cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
-    conn.commit()
-    for u in uuid: 
-        supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
-    return jsonify({'msg': 'Images deleted from database'})
+    media_type = request.args.get('mediaType')
+    if media_type == 'image':
+        cursor.execute("DELETE FROM image_boxes WHERE uuid=%s", (uuid,))
+        conn.commit()
+        supabase.storage.from_("image-bucket").remove(f'{uuid}.jpeg')
+        return jsonify({'msg': 'Image deleted from database'})
+    elif media_type == 'video':
+        cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
+        conn.commit()
+        supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
+        return jsonify({'msg': 'Video deleted from database'})
     
-''' DELETE VIDEOS FROM DATABASE '''
-@app.route('/delete_video', methods=['DELETE'])
+''' DELETE MULTIPLE IMAGES/VIDEOS FROM DATABASE '''
+@app.route('/deleteMultipleMedias', methods=['DELETE'])
 @cross_origin()
-def delete_video():
-    uuid = request.json['uuid']
-    cursor.execute("DELETE FROM video_boxes WHERE uuid=%s", (uuid,))
-    conn.commit()
-    supabase.storage.from_("video-bucket").remove(f'{uuid}.mp4')
-    return jsonify({'msg': 'Video deleted from database'})
-
-@app.route('/delete_multiple_videos', methods=['DELETE'])
-@cross_origin()
-def delete_multiple_videos():
+def delete_multiple_medias():
     uuid = request.json['uuidArray']
-    cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
-    conn.commit()
-    for u in uuid: 
-        supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
-    return jsonify({'msg': 'Videos deleted from database'})
+    media_type = request.args.get('mediaType')
+    if media_type == 'image':
+        cursor.execute("DELETE FROM image_boxes WHERE uuid IN %s", (tuple(uuid),))
+        conn.commit()
+        for u in uuid: 
+            supabase.storage.from_("image-bucket").remove(f'{u}.jpeg')
+        return jsonify({'msg': 'Images deleted from database'})
+    elif media_type == 'video':
+        cursor.execute("DELETE FROM video_boxes WHERE uuid IN %s", (tuple(uuid),))
+        conn.commit()
+        for u in uuid: 
+            supabase.storage.from_("video-bucket").remove(f'{u}.mp4')
+        return jsonify({'msg': 'Videos deleted from database'})
 
 ''' PROCESS IMAGE '''
 @app.route('/upload_image_processing', methods=['POST'])
@@ -221,9 +197,6 @@ def detect_objects_on_image(image, class_name):
 def prepare_input(image):
     """
     Prepare input image for model prediction.
-    Returns:
-        tuple: A tuple containing the prepared input image as a numpy array,
-        the original image width, and the original image height.
     """
     img = Image.open(image)
     img_width, img_height = img.size
@@ -393,7 +366,10 @@ def add_rtsp():
     rtsp = request.json['rtsp']
     user_id = request.json['userId']
     streaming_enabled = True
-    return jsonify({'msg': f'Connecting to {rtsp}'})
+    if rtsp == '0':
+        return jsonify({'msg': 'Connecting to webcam'})
+    else:
+        return jsonify({'msg': f'Connecting to {rtsp}'})
     
 def generate_frames():
     global rtsp, user_id, streaming_enabled

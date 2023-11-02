@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useYoloContext } from './context/yolo-context';
 const DeleteMediaModal = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
+	const { notifySuccess } = useYoloContext();
 	const mediaUrl =
-		props.type === 'images'
+		props.type === 'image'
 			? `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`
 			: `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
 
@@ -15,29 +17,24 @@ const DeleteMediaModal = (props) => {
 	}, [props.uuid]);
 
 	const deleteHandler = () => {
-		fetch(
-			`${import.meta.env.VITE_APP_BACKEND_URL}/${
-				props.type === 'images' ? 'delete_image' : 'delete_video'
-			}`,
-			{
-				method: 'DELETE',
-				mode: 'cors',
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Request-Headers': '*',
-					'Access-Control-Request-Method': '*',
-				},
-				body: JSON.stringify({
-					uuid: props.uuid,
-				}),
-			}
-		)
+		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/deleteMedia?mediaType=${props.type}`, {
+			method: 'DELETE',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Request-Headers': '*',
+				'Access-Control-Request-Method': '*',
+			},
+			body: JSON.stringify({
+				uuid: props.uuid,
+			}),
+		})
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				console.log(data);
+				notifySuccess(data.msg);
 			})
 			.catch((err) => {
 				console.log(err);
@@ -59,7 +56,7 @@ const DeleteMediaModal = (props) => {
 							<div className="text-lg mx-5">Loading</div>
 						</div>
 					) : props.uuid ? (
-						props.type == 'images' ? (
+						props.type == 'image' ? (
 							<img src={mediaUrl} alt={`${props.uuid}`} className="py-4" />
 						) : (
 							<video src={mediaUrl} controls width="840" className="py-4" />

@@ -36,47 +36,20 @@ const ProcessedVideos = () => {
 	}, []);
 
 	useEffect(() => {
-		if (authToken.username === 'admin') {
-			adminGetAllVideos();
-		} else {
-			getAllVideos();
-		}
+		getAllVideos();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getAllVideos = () => {
 		// console.log(authToken);
-		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/get_all_videos`, {
-			method: 'POST',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Request-Headers': '*',
-				'Access-Control-Request-Method': '*',
-			},
-			body: JSON.stringify({
-				userId: authToken.id,
-			}),
-		})
+		fetch(
+			`${import.meta.env.VITE_APP_BACKEND_URL}/getAll?mediaType=video&user=${authToken.username}`
+		)
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				setAllVideos(data.all_videos);
-			})
-			.catch((error) => {
-				console.log(error);
-			});
-	};
-
-	const adminGetAllVideos = () => {
-		fetch(`${import.meta.env.VITE_APP_BACKEND_URL}/admin_get_all_medias?mediaType=video`)
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				setAllVideos(data.all_medias);
+				setAllVideos(data.all_data);
 			})
 			.catch((error) => {
 				console.log(error);
@@ -170,28 +143,28 @@ const ProcessedVideos = () => {
 				open={showPreview}
 				uuid={previewUuid}
 				refresh={refreshHandler}
-				type="videos"
+				type="video"
 			/>
 			<UpdateMedia
 				handleToggle={openUpdateModal}
 				open={showUpdate}
 				uuid={updateUuid}
 				refresh={refreshHandler}
-				type="videos"
+				type="video"
 			/>
 			<DeleteMediaModal
 				handleToggle={openDeleteModal}
 				open={showDelete}
 				uuid={deleteUuid}
 				refresh={refreshHandler}
-				type="videos"
+				type="video"
 			/>
 			<DeleteMultipleMedias
 				handleToggle={openDeleteMultipleModal}
 				open={showDeleteMultiple}
 				uuidArray={checkedVideos}
 				refresh={refreshHandler}
-				type="videos"
+				type="video"
 			/>
 			{allVideos && (
 				<div className="p-5">
