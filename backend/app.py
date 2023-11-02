@@ -205,8 +205,8 @@ def process_image():
     boxes = detect_objects_on_image(image_file.stream, class_name)
     uuid = str(uuid4())
     if len(boxes) != 0:
-        query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id") VALUES (%s, %s, %s)'''
-        cursor.execute(query, (uuid, str(boxes), user_id))
+        query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id", "image_name") VALUES (%s, %s, %s, %s)'''
+        cursor.execute(query, (uuid, str(boxes), user_id, class_name))
         conn.commit()
         return jsonify({'boxes': boxes, 'uuid': uuid, 'status': 'success', 'msg': 'Objects detected'})
     return jsonify({'msg': 'No objects detected', 'status': 'fail'})
