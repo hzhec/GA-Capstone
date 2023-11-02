@@ -9,7 +9,7 @@ const LiveCamForm = () => {
 
 	const navigate = useNavigate();
 	const { authToken, notifyError, notifySuccess } = useYoloContext();
-	const liveStreamUrl = `h${import.meta.env.VITE_APP_BACKEND_URL}/start_stream`;
+	const liveStreamUrl = `${import.meta.env.VITE_APP_BACKEND_URL}/start_stream`;
 
 	useEffect(() => {
 		if (!authToken.token) {
