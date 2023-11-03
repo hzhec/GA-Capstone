@@ -382,6 +382,7 @@ def add_rtsp():
 def generate_frames():
     global rtsp, user_id, streaming_enabled
     boxes = [] 
+    detected_objects = []
     uuid = str(uuid4())
     output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
     
@@ -410,6 +411,8 @@ def generate_frames():
                 if conf > 0.5:
                     (x, y, x2, y2) = bbox
                     boxes.append([x, y, x2, y2, result.names[cls], conf])
+                    if result.names[cls] not in detected_objects:
+                        detected_objects.append(result.names[cls])
                     cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
                     cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
             
@@ -423,7 +426,7 @@ def generate_frames():
     video_output.release()
     cv2.destroyAllWindows()
     upload_video_sup(uuid, output_path)
-    upload_video_data(uuid, boxes, width, height, user_id)
+    upload_video_data(uuid, boxes, width, height, user_id, detected_objects)
     
     os.remove(output_path)
     rtsp = ''
