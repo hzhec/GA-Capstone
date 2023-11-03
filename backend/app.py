@@ -254,11 +254,13 @@ def process_output(output, img_width, img_height, class_name):
     while len(boxes) > 0:
         # Add the box with the highest probability to the result
         result.append(boxes[0])
-        if boxes[0][4] not in detected_objects:
-            detected_objects.append(boxes[0][4])
         # Remove all boxes with high intersection over union (IOU) with the selected box
         boxes = [box for box in boxes if iou(box, boxes[0]) < 0.7]
     
+    for box in result:
+        if box[4] not in detected_objects and box[5] > 0.6:
+            detected_objects.append(box[4])
+            
     return result, detected_objects
 
 def iou(box1,box2):

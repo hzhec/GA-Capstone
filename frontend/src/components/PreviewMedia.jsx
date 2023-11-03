@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 const PreviewMedia = (props) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const mediaUrl =
-		props.type === 'images'
+		props.type === 'image'
 			? `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/image-bucket/${props.uuid}.jpeg`
 			: `https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/video-bucket/${props.uuid}.mp4`;
 
@@ -31,7 +31,7 @@ const PreviewMedia = (props) => {
 							<div className="text-2xl mx-5">Loading</div>
 						</div>
 					) : props.uuid ? (
-						props.type == 'images' ? (
+						props.type == 'image' ? (
 							<img src={mediaUrl} alt={`${props.uuid}`} className="py-4" />
 						) : (
 							<video src={mediaUrl} autoPlay controls width="840" className="py-4" />

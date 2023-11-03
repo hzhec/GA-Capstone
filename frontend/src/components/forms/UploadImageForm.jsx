@@ -170,7 +170,7 @@ const UploadImageForm = () => {
 					className="file-input file-input-bordered w-full max-w-xs mx-auto my-3"
 					ref={inputRef}
 				/>
-				{isLoading && <canvas className="w-full max-w-6xl my-5 mx-auto" ref={canvasRef} />}
+				{isLoading && <canvas className="w-[60%] max-w-6xl my-5 mx-auto" ref={canvasRef} />}
 			</div>
 		</div>
 	);
