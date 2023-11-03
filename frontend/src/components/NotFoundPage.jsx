@@ -1,4 +1,21 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useYoloContext } from './context/yolo-context';
+
 const NotFoundPage = () => {
+	const navigate = useNavigate();
+	const { notifyError } = useYoloContext();
+
+	useEffect(() => {
+		notifyError(`Navigating back to homepage in 5 seconds...`);
+		const timer = setTimeout(() => {
+			navigate('/');
+		}, 4000);
+
+		return () => clearTimeout(timer);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	return (
 		<>
 			<div className="flex w-full justify-items-center h-[65rem]">
