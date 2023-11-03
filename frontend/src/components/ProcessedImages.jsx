@@ -265,7 +265,9 @@ const ProcessedImages = () => {
 							>
 								«
 							</button>
-							<button className="join-item btn btn-sm">Page {currentPage}</button>
+							<button className="join-item btn btn-sm" onClick={() => paginate(1)}>
+								Page {currentPage}
+							</button>
 							<button
 								className="join-item btn btn-sm"
 								disabled={

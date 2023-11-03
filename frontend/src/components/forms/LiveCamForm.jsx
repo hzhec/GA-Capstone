@@ -65,6 +65,12 @@ const LiveCamForm = () => {
 	return (
 		<div className="flex justify-center w-full">
 			<div className="flex flex-col w-full justify-self-start mt-5">
+				<img
+					src="https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/logo-bucket/robot-smile.png"
+					alt="robot-smile"
+					className="mx-auto"
+					width="120px"
+				/>
 				<h1 className="text-3xl font-bold text-center my-4">Live Camera</h1>
 				<div className="form-control w-full max-w-xs mx-auto flex flex-col justify-center">
 					<div className="flex flex-row w-full">

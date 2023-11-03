@@ -12,6 +12,7 @@ import LoginForm from './components/forms/LoginForm';
 import YoloProvider from './components/context/yolo-context';
 import Layout from './components/Layout';
 import { Toaster } from 'react-hot-toast';
+import NotFoundPage from './components/NotFoundPage';
 
 function App() {
 	return (
@@ -29,6 +30,7 @@ function App() {
 						<Route path="/live-camera" element={<LiveCamForm />} />
 						<Route path="/processed-images" element={<ProcessedImages />} />
 						<Route path="/processed-videos" element={<ProcessedVideos />} />
+						<Route path="*" element={<NotFoundPage />} />
 					</Route>
 				</Routes>
 			</YoloProvider>

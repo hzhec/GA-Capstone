@@ -59,6 +59,12 @@ const UploadVideoForm = () => {
 	return (
 		<div className="flex justify-center w-full">
 			<div className="flex flex-col w-full justify-self-start mt-5">
+				<img
+					src="https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/logo-bucket/robot-search-2.png"
+					alt="robot-search"
+					className="mx-auto"
+					width="150px"
+				/>
 				<h1 className="text-3xl font-bold text-center my-4">Upload Video</h1>
 				<input
 					type="file"

@@ -5,9 +5,13 @@ const MainPage = () => {
 		<>
 			<Toaster />
 			<div className="flex ml-4 w-full justify-items-center h-[65rem]">
-				<div className="flex flex-col w-full text-center my-10">
-					<div className="text-3xl font-bold text-slate-500 py-1 my-10 ">
-						YOLO (You Only Look Once) <br />a real-time object detection algorithm
+				<div className="flex flex-col w-full text-center">
+					<div className="text-3xl font-bold text-slate-500 py-1">
+						<img
+							className="mx-auto rounded-3xl "
+							src="https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/logo-bucket/robot-chat-yolov8.png"
+							width="35%"
+						/>
 					</div>
 				</div>
 			</div>

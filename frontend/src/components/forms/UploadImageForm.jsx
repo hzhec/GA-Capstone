@@ -149,6 +149,12 @@ const UploadImageForm = () => {
 	return (
 		<div className="flex justify-center w-full">
 			<div className="flex flex-col w-full justify-self-start mt-5">
+				<img
+					src="https://zzarsocediotoipqufrv.supabase.co/storage/v1/object/public/logo-bucket/robot-search-1.png"
+					alt="robot-search"
+					width="110px"
+					className="mx-auto"
+				/>
 				<h1 className="text-3xl font-bold text-center my-4">Upload Image</h1>
 				<select className="select select-bordered w-full max-w-xs mx-auto" ref={selectRef}>
 					<option key="none" value="none">

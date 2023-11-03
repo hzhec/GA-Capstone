@@ -20,18 +20,20 @@ const Navbar = () => {
 	};
 
 	return (
-		<div className="mx-auto my-3 w-11/12">
-			<div className="navbar bg-base-100 w-full shadow-lg mx-auto">
+		<div className="mx-auto my-5 w-11/12">
+			<div className="navbar bg-[#ffffff83] w-full shadow-lg mx-auto border-solid border-[0.5px] border-[#d6d6d682] rounded-xl py-0.5 px-3">
 				<div className="flex-1">
-					<Link to="/" className="btn btn-ghost normal-case text-xl">
+					<Link to="/" className="btn btn-ghost normal-case text-2xl">
 						YOLOv8
 					</Link>
 				</div>
 				<div className="flex-none">
-					<ul className="menu menu-horizontal px-1">
+					<ul className="menu menu-horizontal px-1 text-lg">
 						{authToken.username && (
 							<li>
-								<div>Welcome, {authToken.username}!</div>
+								<div className="pointer-events-none hover:bg-transparent">
+									Welcome, {authToken.username}!
+								</div>
 							</li>
 						)}
 						{token && (
