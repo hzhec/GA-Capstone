@@ -178,11 +178,11 @@ def process_image():
     image_file = request.files['imageFile']
     user_id = request.form.get('userId')
     class_name = request.form.get('className')
-    boxes = detect_objects_on_image(image_file.stream, class_name)
+    boxes, objects = detect_objects_on_image(image_file.stream, class_name)
     uuid = str(uuid4())
     if len(boxes) != 0:
         query = '''INSERT INTO image_boxes ("uuid", "boxes", "user_id", "image_name") VALUES (%s, %s, %s, %s)'''
-        cursor.execute(query, (uuid, str(boxes), user_id, class_name))
+        cursor.execute(query, (uuid, str(boxes), user_id, str(objects)))
         conn.commit()
         return jsonify({'boxes': boxes, 'uuid': uuid, 'status': 'success', 'msg': 'Objects detected'})
     return jsonify({'msg': 'No objects detected', 'status': 'fail'})
@@ -191,8 +191,8 @@ def detect_objects_on_image(image, class_name):
     input, img_width, img_height = prepare_input(image)
     # print(input)
     output = run_model(input)
-    results = process_output(output,img_width,img_height, class_name)
-    return results
+    results, objects = process_output(output,img_width,img_height, class_name)
+    return results, objects
 
 def prepare_input(image):
     """
@@ -250,13 +250,16 @@ def process_output(output, img_width, img_height, class_name):
     boxes.sort(key=lambda x: x[5], reverse=True)
     
     result = []
+    detected_objects = []
     while len(boxes) > 0:
         # Add the box with the highest probability to the result
         result.append(boxes[0])
+        if boxes[0][4] not in detected_objects:
+            detected_objects.append(boxes[0][4])
         # Remove all boxes with high intersection over union (IOU) with the selected box
         boxes = [box for box in boxes if iou(box, boxes[0]) < 0.7]
     
-    return result
+    return result, detected_objects
 
 def iou(box1,box2):
     return intersection(box1,box2)/union(box1,box2)
@@ -289,10 +292,10 @@ def load_video():
     video_file.save(video_path)
     
     processed_video_path = os.path.join(app.config['UPLOAD_FOLDER'], f'processed_{uuid}.mp4')
-    boxes, width, height = process_video(video_path, processed_video_path)
+    boxes, width, height, objects = process_video(video_path, processed_video_path)
     if boxes:
         upload_video_sup(uuid, processed_video_path)
-        upload_video_data(uuid, boxes, width, height, user_id)
+        upload_video_data(uuid, boxes, width, height, user_id, objects)
         
     os.remove(video_path)
     os.remove(processed_video_path)
@@ -301,6 +304,7 @@ def load_video():
 
 def process_video(video, output_path):
     frames_info = []
+    detected_objects = []
 
     cap = cv2.VideoCapture(video)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -321,10 +325,12 @@ def process_video(video, output_path):
         confidences = np.array(result.boxes.conf.cpu(), dtype="float")
         
         for cls, bbox, conf in zip(classes, bboxes, confidences): 
-            if conf > 0.5:
+            if conf > 0.6:
                 (x, y, x2, y2) = bbox
                 # print([x, y, x2, y2, result.names[cls], conf])
                 frames_info.append([x, y, x2, y2, result.names[cls], conf])
+                if result.names[cls] not in detected_objects:
+                    detected_objects.append(result.names[cls])
                 cv2.rectangle(frame, (x, y), (x2, y2), (0, 0, 225), 2)
                 cv2.putText(frame, str(result.names[cls]), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 225), 2)
             
@@ -334,7 +340,7 @@ def process_video(video, output_path):
     video_output.release()
     cv2.destroyAllWindows()
     
-    return frames_info, width, height
+    return frames_info, width, height, detected_objects
 
 ''' UPLOAD IMAGE/VIDEO TO SUPABASE STORAGE '''
 @app.route('/upload_to_supabase', methods=['POST'])
@@ -352,9 +358,9 @@ def upload_video_sup(uuid, video_path):
     with open(video_path, 'rb') as video_file:
         supabase.storage.from_("video-bucket").upload(f'{uuid}.mp4', video_file, {'content-type':'video/mp4'})
 
-def upload_video_data(uuid, boxes, width, height, user_id):
-    query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height", "user_id") VALUES (%s, %s, %s, %s, %s)'''
-    cursor.execute(query, (uuid, str(boxes), width, height, user_id))
+def upload_video_data(uuid, boxes, width, height, user_id, objects):
+    query = '''INSERT INTO video_boxes ("uuid", "boxes", "vid_width", "vid_height", "user_id", "video_name") VALUES (%s, %s, %s, %s, %s, %s)'''
+    cursor.execute(query, (uuid, str(boxes), width, height, user_id, str(objects)))
     conn.commit()
 
 ''' RTSP/WEBCAM VIDEO STREAM '''    
