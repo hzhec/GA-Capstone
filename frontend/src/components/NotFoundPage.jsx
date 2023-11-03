@@ -7,7 +7,7 @@ const NotFoundPage = () => {
 	const { notifyError } = useYoloContext();
 
 	useEffect(() => {
-		notifyError(`Navigating back to homepage in 5 seconds...`);
+		notifyError(`Navigating back to main page in 5 seconds...`);
 		const timer = setTimeout(() => {
 			navigate('/');
 		}, 4000);

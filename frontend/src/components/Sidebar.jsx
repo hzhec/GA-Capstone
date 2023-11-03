@@ -4,6 +4,16 @@ const Sidebar = () => {
 	return (
 		<ul className="bg-[#ffffff82] relative pl-3 overflow-y-scroll w-[17%] h-[65rem]">
 			<li className="menu flex flex-col w-full font-medium">
+				<div className="p-0">
+					<span className="select-none flex items-center px-4 py-[.775rem] cursor-pointer my-[.4rem] rounded-[.95rem]">
+						<Link
+							to="/live-camera"
+							className="flex items-center flex-grow text-[1.2rem] text-stone-600 hover:text-stone-900 hover:-translate-y-1 hover:scale-110 duration-200"
+						>
+							Live Camera
+						</Link>
+					</span>
+				</div>
 				<details>
 					<summary className="select-none flex items-center px-4 py-[.775rem] cursor-pointer my-[.4rem] rounded-[.95rem]">
 						<div className="flex items-center flex-grow text-[1.2rem]  text-stone-600 hover:text-stone-900 hover:-translate-y-1 hover:scale-110 duration-200">
@@ -61,17 +71,6 @@ const Sidebar = () => {
 						</span>
 					</div>
 				</details>
-
-				<div className="p-0">
-					<span className="select-none flex items-center px-4 py-[.775rem] cursor-pointer my-[.4rem] rounded-[.95rem]">
-						<Link
-							to="/live-camera"
-							className="flex items-center flex-grow text-[1.2rem] text-stone-600 hover:text-stone-900 hover:-translate-y-1 hover:scale-110 duration-200"
-						>
-							Live Camera
-						</Link>
-					</span>
-				</div>
 			</li>
 		</ul>
 	);
